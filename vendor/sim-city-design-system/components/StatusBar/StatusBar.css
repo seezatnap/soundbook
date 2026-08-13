@@ -1,0 +1,104 @@
+/*
+ * The bottom readout strip.
+ *
+ * A raised strip carrying sunken cells: the strip belongs to the chrome, the
+ * cells belong to the machine reading out of it. The only light edge is along
+ * the top, which is what separates the bar from the work above it without
+ * spending a whole rule on the job.
+ */
+
+.sc-statusbar {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  padding: 3px;
+  background: var(--face);
+  border-top: 2px solid var(--edge-light);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sc-readout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  min-width: 0;
+}
+
+.sc-readout__label {
+  flex: none;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Inline-flex so an LED can sit inside the value and stay on the baseline. */
+.sc-readout__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+/* The funds cell. Amber is reserved for the number the city is judged on. */
+.sc-readout--accent .sc-readout__value {
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+
+/* Passing commentary rather than telemetry: dim, and never the loudest thing. */
+.sc-readout--dim .sc-readout__value {
+  color: var(--ink-dim);
+}
+
+.sc-readout--grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.sc-readout--grow .sc-readout__value {
+  flex: 1;
+}
+
+/*
+ * The status square. Eight pixels of colour behind a dark rim, unlit when idle.
+ * It carries no meaning on its own — the text beside it does — so it is hidden
+ * from the accessibility tree.
+ */
+.sc-led {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--edge-dark);
+  background: var(--face-deep);
+}
+
+.sc-led--ok {
+  background: var(--ok);
+}
+
+.sc-led--warn {
+  background: var(--warn);
+}
+
+.sc-led--danger {
+  background: var(--danger);
+}
+
+.sc-led--idle {
+  background: var(--ink-disabled);
+}
+
+/* Teal is the system's colour for work in flight, here and in the pulse bar. */
+.sc-led--active {
+  background: var(--accent-2);
+}

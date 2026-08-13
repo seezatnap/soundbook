@@ -1,0 +1,67 @@
+/*
+ * Small uppercase waypoints separated by hard chevrons. Only the "…" fold is
+ * a raised plate — it is the one thing here you can press that is not a link.
+ */
+
+.sc-breadcrumbs__list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sc-breadcrumbs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sc-breadcrumbs__sep {
+  color: var(--ink-dim);
+  flex: none;
+}
+
+.sc-breadcrumbs__link {
+  color: var(--ink-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 1px 2px;
+}
+
+.sc-breadcrumbs__link:hover {
+  color: var(--ink);
+}
+
+/* Where you are: full ink, no underline, not a link. */
+.sc-breadcrumbs__current {
+  color: var(--ink);
+  padding: 1px 2px;
+}
+
+.sc-breadcrumbs__fold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 4px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  line-height: 14px;
+}
+
+.sc-breadcrumbs__fold:hover {
+  background: var(--face);
+}
+
+.sc-breadcrumbs__fold:active {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}

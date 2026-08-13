@@ -1,0 +1,145 @@
+/*
+ * 28px square plates on a hard 2px rail. State is told entirely by bevel and
+ * ink: done = accent stamp, current = raised plate with accent numerals,
+ * todo = sunken and dim. The rail is --edge-dark and never animates.
+ */
+
+.sc-stepper__list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sc-stepper__step {
+  position: relative;
+  display: flex;
+}
+
+.sc-stepper__plate {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.sc-stepper__step--done .sc-stepper__plate {
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+button.sc-stepper__plate {
+  cursor: pointer;
+}
+
+button.sc-stepper__plate:hover {
+  background: var(--warn);
+}
+
+button.sc-stepper__plate:active {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+}
+
+.sc-stepper__step--current .sc-stepper__plate {
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--accent);
+}
+
+.sc-stepper__step--todo .sc-stepper__plate {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink-dim);
+}
+
+.sc-stepper__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sc-stepper__label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.sc-stepper__step--todo .sc-stepper__label {
+  color: var(--ink-dim);
+}
+
+.sc-stepper__description {
+  color: var(--ink-dim);
+}
+
+/* ------------------------------------------------------------------------
+ * Horizontal: plates on one line, labels beneath, rail at plate mid-height.
+ * ---------------------------------------------------------------------- */
+
+.sc-stepper--horizontal .sc-stepper__list {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.sc-stepper--horizontal .sc-stepper__step {
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sc-stepper--horizontal .sc-stepper__step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: var(--edge-dark);
+}
+
+.sc-stepper--horizontal .sc-stepper__text {
+  align-items: center;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------------
+ * Vertical: plates in a column, text alongside, rail down the plate axis.
+ * ---------------------------------------------------------------------- */
+
+.sc-stepper--vertical .sc-stepper__list {
+  flex-direction: column;
+}
+
+.sc-stepper--vertical .sc-stepper__step {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: 20px;
+}
+
+.sc-stepper--vertical .sc-stepper__step:last-child {
+  padding-bottom: 0;
+}
+
+.sc-stepper--vertical .sc-stepper__step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 32px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--edge-dark);
+}
+
+.sc-stepper--vertical .sc-stepper__text {
+  padding-top: 6px;
+}

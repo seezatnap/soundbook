@@ -1,0 +1,46 @@
+/*
+ * The scrim is a true 50% checker of dark 2px cells over a thin flat tint —
+ * hard pixels all the way down, never a soft translucent wash. Axis-aligned
+ * on purpose: a 45° stripe cannot land on device pixels, so the browser
+ * anti-aliases every edge and a full-viewport field of it moirés.
+ */
+
+.sc-dialog__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background-color: rgba(6, 10, 9, 0.35);
+  background-image: conic-gradient(
+    rgba(6, 10, 9, 0.55) 25%,
+    transparent 25% 50%,
+    rgba(6, 10, 9, 0.55) 50% 75%,
+    transparent 75%
+  );
+  background-size: 4px 4px;
+}
+
+.sc-dialog {
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+}
+
+.sc-dialog--sm {
+  width: min(360px, calc(100vw - 32px));
+}
+
+.sc-dialog--md {
+  width: min(460px, calc(100vw - 32px));
+}
+
+.sc-dialog--lg {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.sc-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}

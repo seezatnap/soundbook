@@ -1,0 +1,33 @@
+/*
+ * A search field is a text well with a glyph at one end and a way out at the
+ * other. The clear button is a raised bevel inside the sunken one — the same
+ * 16px square as a panel's close box, because it does the same job.
+ */
+
+.sc-searchfield__clear {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+}
+
+.sc-searchfield__clear:hover:not(:disabled) {
+  background: var(--face);
+}
+
+.sc-searchfield__clear:active:not(:disabled) {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-searchfield__clear:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

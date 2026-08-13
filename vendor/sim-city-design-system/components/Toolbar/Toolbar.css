@@ -1,0 +1,38 @@
+/*
+ * A raised strip of controls. The toolbar frames; the controls inside keep
+ * their own bevels, and grooves — not gaps — divide the groups.
+ */
+
+.sc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+}
+
+.sc-toolbar--vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sc-toolbar__rule {
+  align-self: stretch;
+  flex: none;
+  width: 2px;
+  border-left: 1px solid var(--edge-dark);
+  border-right: 1px solid var(--edge-light);
+  margin: 1px 3px;
+}
+
+.sc-toolbar--vertical > .sc-toolbar__rule {
+  width: auto;
+  height: 2px;
+  border-left: 0;
+  border-right: 0;
+  border-top: 1px solid var(--edge-dark);
+  border-bottom: 1px solid var(--edge-light);
+  margin: 3px 1px;
+}

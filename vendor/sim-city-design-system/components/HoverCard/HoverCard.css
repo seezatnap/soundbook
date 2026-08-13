@@ -1,0 +1,11 @@
+/*
+ * The card is a Panel; this class only pins it and caps its footprint.
+ * Same layer as popovers — it is a popover that opens itself.
+ */
+
+.sc-hovercard {
+  position: fixed;
+  z-index: 60;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 8px));
+}

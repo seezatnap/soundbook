@@ -1,0 +1,53 @@
+/*
+ * DataTable adds only what thinking requires: a sort button that dresses as
+ * the header band it sits in, a narrow selection gutter, and the empty-state
+ * plate. Everything structural is Table's.
+ */
+
+/* The sort button is the header cell: same ink, same case, plus a glyph. */
+.sc-datatable__sort {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.sc-datatable__sort:hover {
+  color: var(--ink);
+}
+
+.sc-datatable__sort:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sc-datatable__sort--numeric {
+  justify-content: flex-end;
+}
+
+.sc-datatable__select-cell {
+  width: 28px;
+}
+
+.sc-datatable__select {
+  display: flex;
+}
+
+.sc-datatable__empty {
+  padding: 24px 8px;
+  text-align: center;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}

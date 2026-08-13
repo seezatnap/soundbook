@@ -1,0 +1,73 @@
+/*
+ * Closed row: a raised bar. Open row: the bar pressed in, its bottom edge
+ * removed so the content well below continues the same sunken tray — one
+ * bevel outline drawn across two elements. Everything snaps; nothing eases.
+ */
+
+.sc-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sc-accordion__heading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.sc-accordion__trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  user-select: none;
+}
+
+.sc-accordion__trigger:hover:not(:disabled):not([aria-expanded='true']) {
+  background: var(--face);
+}
+
+/* Pressed in for as long as its section stays open. */
+.sc-accordion__trigger[aria-expanded='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  border-bottom: 0;
+  padding-bottom: 7px;
+  background: var(--face-sunken);
+}
+
+.sc-accordion__trigger:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-accordion__trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
+}
+
+.sc-accordion__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Continues the trigger's sunken outline: no top edge of its own. */
+.sc-accordion__content {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  border-top: 0;
+  background: var(--face-sunken);
+  padding: 6px 8px 8px;
+}

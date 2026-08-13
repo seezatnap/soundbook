@@ -1,0 +1,64 @@
+/*
+ * Sunken, because a callout is part of the record it sits in. Only the glyph
+ * carries the status colour: tinting the whole plate would either wash out the
+ * 11px type or invent a colour the palette does not have.
+ */
+
+.sc-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 6px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background-color: var(--face-sunken);
+  color: var(--ink);
+}
+
+.sc-callout__icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--accent-2);
+}
+
+.sc-callout--ok .sc-callout__icon {
+  color: var(--ok);
+}
+
+.sc-callout--warn .sc-callout__icon {
+  color: var(--warn);
+}
+
+.sc-callout--danger .sc-callout__icon {
+  color: var(--danger);
+}
+
+.sc-callout__body {
+  min-width: 0;
+}
+
+.sc-callout__title {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 2px;
+}
+
+.sc-callout__text {
+  color: var(--ink-dim);
+}
+
+/* The hatched spine: 2px stripes on an 8px pitch, clipped to the left edge. */
+.sc-callout--danger {
+  padding-left: 16px;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--danger) 0 2px,
+    transparent 2px 6px
+  );
+  background-repeat: no-repeat;
+  background-size: 8px 100%;
+}
+
+.sc-callout--danger .sc-callout__text {
+  color: var(--ink);
+}

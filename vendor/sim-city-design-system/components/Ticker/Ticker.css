@@ -1,0 +1,117 @@
+/*
+ * The activity feed: what the city's crews are doing right now.
+ *
+ * Rows are a fixed marker column, a title, a status word and — for work still
+ * in progress — the pulse bar spanning the full width beneath them. The marker
+ * column is always drawn, empty or not, so titles line up down the panel even
+ * though every row is its own grid.
+ */
+
+.sc-ticker {
+  width: 236px;
+}
+
+.sc-ticker__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.sc-ticker__item {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--edge-dark);
+}
+
+.sc-ticker__list--dismissable .sc-ticker__item {
+  grid-template-columns: 16px 1fr auto auto;
+}
+
+.sc-ticker__item:last-child {
+  border-bottom: 0;
+}
+
+.sc-ticker__marker {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  color: var(--ok);
+}
+
+.sc-ticker__item--failed .sc-ticker__marker {
+  color: var(--danger);
+}
+
+.sc-ticker__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A failed job says so twice: in the glyph and in the ink. */
+.sc-ticker__item--failed .sc-ticker__title,
+.sc-ticker__item--failed .sc-ticker__status {
+  color: var(--danger);
+}
+
+.sc-ticker__status {
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sc-ticker__pulse {
+  grid-column: 1 / -1;
+}
+
+.sc-ticker__meta {
+  grid-column: 1 / -1;
+  color: var(--ink-dim);
+}
+
+/* Dismissal is housekeeping, so it is drawn as the smallest thing in the row:
+   no bevel, no face of its own, just an × that lights up when you reach it. */
+.sc-ticker__dismiss {
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sc-ticker__dismiss:hover {
+  color: var(--ink);
+}
+
+.sc-ticker__dismiss:active {
+  color: var(--accent);
+}
+
+/* The tail of a capped list. Not a row: nothing here can be acted on. */
+.sc-ticker__more {
+  margin: 0;
+  padding: 4px 2px 0;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sc-ticker__empty {
+  margin: 0;
+  padding: 4px 2px;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

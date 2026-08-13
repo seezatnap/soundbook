@@ -1,0 +1,47 @@
+/*
+ * The group label speaks in the same register as a panel title: uppercase,
+ * dim, tracked out. Errors are danger ink, not a tinted box — a tint would
+ * be a wash, and washes do not exist here.
+ */
+
+.sc-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sc-checkbox-group__label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+.sc-checkbox-group--disabled .sc-checkbox-group__label {
+  color: var(--ink-disabled);
+}
+
+.sc-checkbox-group__description {
+  color: var(--ink-dim);
+}
+
+.sc-checkbox-group--disabled .sc-checkbox-group__description {
+  color: var(--ink-disabled);
+}
+
+.sc-checkbox-group__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sc-checkbox-group__items--horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.sc-checkbox-group__error {
+  color: var(--danger);
+  letter-spacing: 0.04em;
+}

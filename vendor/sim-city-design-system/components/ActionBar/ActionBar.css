@@ -1,0 +1,38 @@
+/*
+ * A raised bar floating above the bottom edge. Centered with auto margins —
+ * never a transform, which can land chrome on a half pixel.
+ */
+
+.sc-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+  z-index: 35;
+}
+
+.sc-actionbar__count {
+  padding: 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sc-actionbar__rule {
+  align-self: stretch;
+  flex: none;
+  width: 2px;
+  border-left: 1px solid var(--edge-dark);
+  border-right: 1px solid var(--edge-light);
+}

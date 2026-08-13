@@ -1,0 +1,59 @@
+/*
+ * Progress is a marquee of hard blocks, never a smooth bar.
+ *
+ * Most work in a city simulator has no honest percentage — a crew is either out
+ * there or it is not — so the default is a run of blocks marching in steps(5),
+ * which says "something is happening" without pretending to know how far along
+ * it is. Pass a value and the same blocks stop marching and start counting.
+ */
+
+.sc-pulse {
+  height: 6px;
+  border: 1px solid var(--edge-dark);
+  background-color: var(--face-sunken);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--accent-2) 0 4px,
+    transparent 4px 10px
+  );
+  background-size: 20px 100%;
+  animation: sc-pulse-march 700ms steps(5, end) infinite;
+}
+
+/* Queued work marches in amber; work in flight marches in teal. */
+.sc-pulse--queued {
+  background-image: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 10px);
+}
+
+.sc-pulse--determinate {
+  background-image: none;
+  animation: none;
+}
+
+.sc-pulse__fill {
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--accent-2) 0 4px,
+    transparent 4px 10px
+  );
+}
+
+.sc-pulse--queued .sc-pulse__fill {
+  background-image: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 10px);
+}
+
+@keyframes sc-pulse-march {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-pulse {
+    animation: none;
+  }
+}

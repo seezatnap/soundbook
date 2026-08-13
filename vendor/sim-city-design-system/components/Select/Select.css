@@ -1,0 +1,70 @@
+/*
+ * The trigger is a raised face wearing field anatomy: full width, one 16px
+ * text row, a dim chevron on the right. Opening it presses it — the bevel
+ * flips and the face sinks, because an open dropdown is a held-down control.
+ */
+
+.sc-select__trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  cursor: pointer;
+  text-align: left;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+}
+
+.sc-select__trigger:hover:not(:disabled) {
+  background: var(--face);
+}
+
+/* Invalid re-inks the shadowed edges only; the control keeps its shape. */
+.sc-select__trigger--invalid {
+  border-color: var(--edge-light) var(--danger) var(--danger) var(--edge-light);
+}
+
+.sc-select__trigger--open {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-select__trigger:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-select__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 16px;
+  line-height: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Same dim voice as an empty text well. */
+.sc-select__value--placeholder {
+  color: var(--ink-dim);
+}
+
+.sc-select__chevron {
+  flex: none;
+  color: var(--ink-dim);
+}
+
+.sc-select__trigger:disabled .sc-select__chevron {
+  color: var(--ink-disabled);
+}
+
+/* Above the dialog scrim: in a stack the popup is the newer question. */
+.sc-select__popup {
+  position: fixed;
+  z-index: 60;
+  max-width: min(360px, calc(100vw - 8px));
+}

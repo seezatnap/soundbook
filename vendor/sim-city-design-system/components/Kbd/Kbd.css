@@ -1,0 +1,23 @@
+/*
+ * A key cap is the smallest raised thing in the system: a 2px bevel around two
+ * pixels of air. It never presses — this is a picture of a key, not a control —
+ * so it has no active state to flip into.
+ */
+
+.sc-kbd {
+  display: inline-block;
+  padding: 0 4px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  /* The UA sheet gives `kbd` its own monospace stack at its own size; take it
+     back so caps sit on the same 11px baseline as the sentence around them. */
+  font-family: var(--mono);
+  font-size: inherit;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  user-select: none;
+}

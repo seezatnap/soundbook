@@ -1,0 +1,26 @@
+/*
+ * The form itself is a stack with municipal spacing; the field wrapper is a
+ * bookkeeping node, not a box — display: contents keeps it out of layout so a
+ * FormField can sit inside any flex or grid without disturbing the gaps.
+ */
+
+.sc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sc-form-field {
+  display: contents;
+}
+
+/* The docket of everything wrong, square bullets, each entry a walk-to link. */
+.sc-form__summary-list {
+  margin: 0;
+  padding-left: 16px;
+  list-style: square;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

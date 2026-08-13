@@ -1,0 +1,115 @@
+/*
+ * A month of 24px plates in a real table. The grid draws no bevel of its own —
+ * it sits on whatever panel holds it — and every state is paint, not glow:
+ * today is a 1px accent keyline, selection is the full accent plate, and a
+ * range interior is a hard 1px checker of accent, the 50% tint of a machine
+ * that could not blend.
+ */
+
+.sc-calendar {
+  display: inline-block;
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-calendar__header {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.sc-calendar__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-calendar__today-button {
+  flex: none;
+}
+
+/* Separate borders so today's keyline stays inside its own 24px plate. */
+.sc-calendar__grid {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.sc-calendar__weekday {
+  width: 24px;
+  height: 18px;
+  padding: 0;
+  font-weight: normal;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+}
+
+.sc-calendar__day {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.sc-calendar__day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-calendar__day:not(.sc-calendar__day--disabled):not(.sc-calendar__day--selected):hover {
+  background: var(--face-raised);
+}
+
+.sc-calendar__day--other {
+  color: var(--ink-dim);
+}
+
+/* Today is a keyline, not a fill: the present is a fact, not a choice. */
+.sc-calendar__day--today {
+  border: 1px solid var(--accent);
+}
+
+/* Interior of a committed range: hard 1px checker of accent on the face. */
+.sc-calendar__day--in-range {
+  background-image: conic-gradient(
+    var(--accent) 0 25%,
+    transparent 25% 50%,
+    var(--accent) 50% 75%,
+    transparent 75%
+  );
+  background-size: 2px 2px;
+}
+
+/* A range still being staked out reads exactly like a committed one — the
+   stake is the decision, and two textures for one idea was one too many
+   (the 45° pinstripe also moiréd). */
+.sc-calendar__day--preview {
+  background-image: conic-gradient(
+    var(--accent) 0 25%,
+    transparent 25% 50%,
+    var(--accent) 50% 75%,
+    transparent 75%
+  );
+  background-size: 2px 2px;
+}
+
+.sc-calendar__day--selected {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sc-calendar__day--disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

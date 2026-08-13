@@ -1,0 +1,29 @@
+/*
+ * The groove: one dark pixel with one light pixel under it, which is how a
+ * 2px-deep score line was drawn before anyone could afford a shadow. Rotating
+ * it for the vertical case puts the dark pixel on the left, so the light edge
+ * always faces the same imaginary lamp as every bevel in the system.
+ */
+
+.sc-separator {
+  flex: none;
+  padding: 0;
+}
+
+.sc-separator--horizontal {
+  width: 100%;
+  height: 2px;
+  border-top: 1px solid var(--edge-dark);
+  border-bottom: 1px solid var(--edge-light);
+  margin: 3px 0;
+}
+
+.sc-separator--vertical {
+  width: 2px;
+  /* Fills the row it divides; the min-height keeps it visible outside flex. */
+  align-self: stretch;
+  min-height: 1em;
+  border-left: 1px solid var(--edge-dark);
+  border-right: 1px solid var(--edge-light);
+  margin: 0 3px;
+}

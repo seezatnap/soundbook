@@ -1,0 +1,13 @@
+/*
+ * The surface is the Popover's Panel; only the note's own measure and the
+ * footer's spacing are decided here. Notes are narrow on purpose — a margin
+ * note that runs the width of the page is a memo.
+ */
+
+.sc-contextual-help__body {
+  max-width: 240px;
+}
+
+.sc-contextual-help__footer {
+  margin-top: 4px;
+}

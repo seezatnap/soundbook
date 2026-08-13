@@ -1,0 +1,63 @@
+/*
+ * The viewport is a sunken window; the deck slides behind it in two hard
+ * steps. Markers are 8px plates — the current one takes the accent at full
+ * strength, because selection is never a tint.
+ */
+
+.sc-carousel {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.sc-carousel__viewport {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  overflow: hidden;
+}
+
+.sc-carousel__track {
+  display: flex;
+  /* The whole motion budget: one translate, quantised to two frames. */
+  transition: transform 160ms steps(2, end);
+}
+
+.sc-carousel__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+.sc-carousel__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.sc-carousel__markers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sc-carousel__marker {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  padding: 0;
+  cursor: pointer;
+  border: 1px solid var(--edge-dark);
+  background: var(--face-raised);
+}
+
+.sc-carousel__marker:hover {
+  background: var(--face);
+}
+
+.sc-carousel__marker--current,
+.sc-carousel__marker--current:hover {
+  background: var(--accent);
+  cursor: default;
+}

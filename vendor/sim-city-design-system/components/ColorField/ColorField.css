@@ -1,0 +1,63 @@
+/*
+ * The standard sunken well with a paint plate riding at its left end. The
+ * input is bare inside the well — the plate and the code sit on one surface,
+ * not on two stacked boxes — and the entry is displayed uppercase because a
+ * paint code is a registration number, not prose.
+ */
+
+.sc-colorfield {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink);
+}
+
+/* The focus ring belongs to the well, not the bare input inside it. */
+.sc-colorfield:has(.sc-colorfield__input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-colorfield__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+/* Removed only because the well above puts it back one bevel further out. */
+.sc-colorfield__input:focus-visible {
+  outline: none;
+}
+
+.sc-colorfield__input::placeholder {
+  color: var(--ink-dim);
+  opacity: 1;
+  text-transform: none;
+}
+
+/* Invalid keeps the sunken direction and only re-inks the shadowed edges. */
+.sc-colorfield--invalid {
+  border-color: var(--danger) var(--edge-light) var(--edge-light) var(--danger);
+}
+
+.sc-colorfield--disabled,
+fieldset:disabled .sc-colorfield {
+  color: var(--ink-disabled);
+}
+
+.sc-colorfield__input:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

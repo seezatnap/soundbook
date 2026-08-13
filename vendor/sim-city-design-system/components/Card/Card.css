@@ -1,0 +1,53 @@
+/*
+ * The raised bevel, a header rule, and nothing else. Interactive cards use
+ * the standard grammar: face shift on hover, bevel flip and sunken face when
+ * pressed. No shadows, no lift — depth is drawn.
+ */
+
+.sc-card {
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+  color: var(--ink);
+}
+
+.sc-card--interactive {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sc-card--interactive:hover {
+  background: var(--face-raised);
+}
+
+.sc-card--interactive:active {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--edge-dark);
+  color: var(--ink-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  user-select: none;
+}
+
+.sc-card__body {
+  padding: 8px;
+}
+
+.sc-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--edge-dark);
+}

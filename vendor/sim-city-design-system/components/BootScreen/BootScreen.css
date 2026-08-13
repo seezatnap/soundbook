@@ -1,0 +1,35 @@
+/*
+ * The splash the machine shows before it will admit to being a city.
+ *
+ * A single panel centred on the deepest surface in the system: nothing else is
+ * on screen, so the well is flat --face-deep rather than a bevelled box — there
+ * is no interface around it for a bevel to be raised against.
+ */
+
+.sc-boot {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background: var(--face-deep);
+}
+
+.sc-boot__panel {
+  width: min(420px, 100%);
+}
+
+.sc-boot__message {
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+
+.sc-boot__pulse {
+  margin: 0;
+}
+
+.sc-boot__hint {
+  margin: 8px 0 0;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}

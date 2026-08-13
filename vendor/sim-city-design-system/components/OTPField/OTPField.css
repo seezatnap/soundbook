@@ -1,0 +1,41 @@
+/*
+ * A row of little wells, one character each — the boxes printed on the bottom
+ * of a permit stub. They are fixed at 20x24 so the code stays a shape the eye
+ * can count, and the digits are tabular so they never shuffle.
+ */
+
+.sc-otpfield {
+  display: flex;
+  gap: 4px;
+}
+
+.sc-otpfield__box {
+  width: 20px;
+  height: 24px;
+  padding: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink);
+}
+
+.sc-otpfield__box:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-otpfield__box::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sc-otpfield--invalid .sc-otpfield__box {
+  border-color: var(--danger) var(--edge-light) var(--edge-light) var(--danger);
+}
+
+.sc-otpfield__box:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

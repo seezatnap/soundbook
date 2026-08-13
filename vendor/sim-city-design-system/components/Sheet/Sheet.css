@@ -1,0 +1,88 @@
+/*
+ * Same scrim recipe as Dialog: a true 50% checker of dark 2px cells, never a
+ * soft wash. Axis-aligned so it stays crisp — 45° stripes moiré on a full
+ * viewport. The sheet itself is a full-height (or full-width) Panel flush to
+ * its edge, entering in three hard frames.
+ */
+
+.sc-sheet__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: rgba(6, 10, 9, 0.35);
+  background-image: conic-gradient(
+    rgba(6, 10, 9, 0.55) 25%,
+    transparent 25% 50%,
+    rgba(6, 10, 9, 0.55) 50% 75%,
+    transparent 75%
+  );
+  background-size: 4px 4px;
+}
+
+.sc-sheet {
+  position: fixed;
+  overflow: auto;
+}
+
+.sc-sheet__panel {
+  min-height: 100%;
+}
+
+.sc-sheet--right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(380px, 85vw);
+  animation: sc-sheet-in-right 150ms steps(3, end);
+}
+
+.sc-sheet--left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(380px, 85vw);
+  animation: sc-sheet-in-left 150ms steps(3, end);
+}
+
+.sc-sheet--bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: min(380px, 85dvh);
+  animation: sc-sheet-in-bottom 150ms steps(3, end);
+}
+
+.sc-sheet__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Three hard jumps to home; base.css zeroes these under reduced motion. */
+@keyframes sc-sheet-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sc-sheet-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sc-sheet-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

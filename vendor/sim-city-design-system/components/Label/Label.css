@@ -1,0 +1,18 @@
+/*
+ * A field label is a caption stamped above the well, not part of the reading
+ * copy: dimmed ink, uppercase, letter-spaced so it reads as chrome rather than
+ * as a sentence.
+ */
+
+.sc-label {
+  display: inline-block;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  user-select: none;
+}
+
+.sc-label__required {
+  margin-left: 3px;
+  color: var(--accent);
+}

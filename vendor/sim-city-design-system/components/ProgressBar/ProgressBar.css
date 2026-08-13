@@ -1,0 +1,78 @@
+/*
+ * The channel is a sunken well; the work is blocks laid inside it. Nothing
+ * here transitions: a percentage is a fact reported at a moment, so the fill
+ * jumps to its new width the way a gauge needle does when the reading changes.
+ */
+
+.sc-progress__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.sc-progress__label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sc-progress__value {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.sc-progress__channel {
+  height: 10px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background-color: var(--face-sunken);
+  overflow: hidden;
+}
+
+/* 4px on, 2px off: the gaps are the well showing through, not a lighter tint. */
+.sc-progress__fill {
+  height: 100%;
+  transition: none;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--accent-2) 0 4px,
+    transparent 4px 6px
+  );
+}
+
+.sc-progress__fill--queued {
+  background-image: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 6px);
+}
+
+/*
+ * Indeterminate: the marching marquee. Five steps across a 20px tile means the
+ * blocks advance one 4px cell at a time — visibly working, never sliding.
+ */
+.sc-progress__channel--marching {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--accent-2) 0 4px,
+    transparent 4px 10px
+  );
+  background-size: 20px 100%;
+  animation: sc-progress-march 700ms steps(5, end) infinite;
+}
+
+.sc-progress__channel--queued {
+  background-image: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 10px);
+}
+
+@keyframes sc-progress-march {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 20px;
+  }
+}

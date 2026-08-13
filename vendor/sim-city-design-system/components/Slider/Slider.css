@@ -1,0 +1,128 @@
+/*
+ * Channel: 6px tall — a 2px inverted bevel around a 2px well. The fill is
+ * a solid accent bar — the filled side must read as unmistakably "on" at a
+ * glance, and a dotted run read as texture rather than as a quantity. The
+ * marching-block voice stays with progress readouts, which measure activity,
+ * not a setting. The thumb is a tall plate so a
+ * finger of the pointer can actually land on it.
+ */
+
+.sc-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.sc-slider__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sc-slider__label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+.sc-slider--disabled .sc-slider__label {
+  color: var(--ink-disabled);
+}
+
+.sc-slider__value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-slider--disabled .sc-slider__value {
+  color: var(--ink-disabled);
+}
+
+.sc-slider__stage {
+  position: relative;
+  height: 20px;
+  touch-action: none;
+}
+
+.sc-slider--disabled .sc-slider__stage {
+  cursor: default;
+}
+
+.sc-slider__channel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 7px;
+  height: 6px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  overflow: hidden;
+}
+
+.sc-slider__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* A 2px sliver needs full-value contrast: light chrome draws it in ink. */
+:root[data-chrome='light'] .sc-slider:not(.sc-slider--disabled) .sc-slider__fill {
+  background: var(--ink);
+}
+
+.sc-slider--disabled .sc-slider__fill {
+  background: var(--ink-disabled);
+}
+
+.sc-slider__thumb {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 20px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  cursor: pointer;
+}
+
+/* Held: the plate presses in, like everything else that is being operated. */
+.sc-slider__thumb--dragging {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-slider__thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sc-slider--disabled .sc-slider__thumb {
+  background: var(--face);
+  cursor: default;
+}
+
+.sc-slider__ticks {
+  position: relative;
+  height: 5px;
+  margin-top: -1px;
+}
+
+.sc-slider__tick {
+  position: absolute;
+  top: 1px;
+  width: 1px;
+  height: 4px;
+  background: var(--ink-dim);
+}
+
+.sc-slider--disabled .sc-slider__tick {
+  background: var(--ink-disabled);
+}

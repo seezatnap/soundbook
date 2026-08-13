@@ -1,0 +1,23 @@
+/*
+ * One row: START well, an en-dash, END well, and the calendar button riding
+ * inside the END well. The dash is furniture, not a control — it gets the
+ * dim ink and none of the events.
+ */
+
+.sc-daterangepicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sc-daterangepicker__field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.sc-daterangepicker__dash {
+  flex: none;
+  color: var(--ink-dim);
+  user-select: none;
+}

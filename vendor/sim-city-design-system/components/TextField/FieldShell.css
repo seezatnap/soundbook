@@ -1,0 +1,68 @@
+/*
+ * Field furniture. The label is the same uppercase dim band as a panel title —
+ * a form is a stack of small panels — and the error is a stamped block rather
+ * than a coloured sentence, because a 1993 clerk marked the form, not the ink.
+ */
+
+.sc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  color: var(--ink);
+}
+
+.sc-field__label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+/* The one place a label is allowed to raise its voice. */
+.sc-field__required {
+  color: var(--accent);
+}
+
+.sc-field__control {
+  display: block;
+  min-width: 0;
+}
+
+.sc-field__description {
+  margin: 0;
+  color: var(--ink-dim);
+}
+
+.sc-field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  color: var(--danger);
+}
+
+.sc-field__error-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 11px;
+  height: 11px;
+  margin-top: 2px;
+  background: var(--danger);
+  color: var(--ink-invert);
+  font-size: 10px;
+  line-height: 11px;
+}
+
+/* Dimming travels down from a disabled field and from a disabled fieldset
+   alike, so a group switched off looks switched off all the way through. */
+.sc-field--disabled .sc-field__label,
+.sc-field--disabled .sc-field__description,
+.sc-field--disabled .sc-field__required,
+fieldset:disabled .sc-field__label,
+fieldset:disabled .sc-field__description,
+fieldset:disabled .sc-field__required {
+  color: var(--ink-disabled);
+}

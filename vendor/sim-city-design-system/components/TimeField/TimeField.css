@@ -1,0 +1,8 @@
+/*
+ * TimeField rides the shared .sc-segfield well from the DateField folder;
+ * the only ink of its own is the optional clock stamp at the head of it.
+ */
+
+.sc-timefield__icon {
+  display: block;
+}

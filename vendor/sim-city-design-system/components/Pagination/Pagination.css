@@ -1,0 +1,83 @@
+/*
+ * Every stop on the rail is a 24px plate. Nav arrows and page numbers are
+ * raised until pressed; the current page stays pressed with accent ink; gaps
+ * are flat and unpressable. Numerals are tabular so the rail never jitters.
+ */
+
+.sc-pagination__list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sc-pagination__item {
+  display: inline-flex;
+}
+
+.sc-pagination__nav,
+.sc-pagination__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-pagination__page {
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.sc-pagination__nav:hover:not(:disabled),
+.sc-pagination__page:hover:not(:disabled):not([aria-current='page']) {
+  background: var(--face);
+}
+
+.sc-pagination__nav:active:not(:disabled),
+.sc-pagination__page:active:not(:disabled) {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+/* The page you are on: pressed in for good, inked in accent. */
+.sc-pagination__page[aria-current='page'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--accent);
+  cursor: default;
+}
+
+.sc-pagination__nav:disabled,
+.sc-pagination__page:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-pagination__gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+.sc-pagination__summary {
+  margin: 0;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}

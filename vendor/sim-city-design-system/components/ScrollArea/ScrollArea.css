@@ -1,0 +1,53 @@
+/*
+ * Sunken frame around a scrolling well. The clipped-edge lines are drawn as
+ * 1px pseudo-elements pinned inside the frame; classes toggle them on and
+ * off in whole steps — nothing fades.
+ */
+
+.sc-scrollarea {
+  position: relative;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-scrollarea__viewport {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.sc-scrollarea__viewport:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-scrollarea::before,
+.sc-scrollarea::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--edge-dark);
+  display: none;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sc-scrollarea::before {
+  top: 0;
+}
+
+.sc-scrollarea::after {
+  bottom: 0;
+}
+
+/* More above the fold. */
+.sc-scrollarea--clipped-top::before {
+  display: block;
+}
+
+/* More below the fold. */
+.sc-scrollarea--clipped-bottom::after {
+  display: block;
+}

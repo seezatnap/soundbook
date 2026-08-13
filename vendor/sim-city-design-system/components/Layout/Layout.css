@@ -1,0 +1,31 @@
+/*
+ * Only View's colour work lives here: faces come from tokens and bevels from
+ * the two edge colours, exactly as the recipes prescribe. Geometry (gaps,
+ * pads, tracks) is inline in Layout.tsx — see the note there.
+ */
+
+.sc-view--bg-face {
+  background: var(--face);
+}
+
+.sc-view--bg-raised {
+  background: var(--face-raised);
+}
+
+.sc-view--bg-sunken {
+  background: var(--face-sunken);
+}
+
+.sc-view--bg-deep {
+  background: var(--face-deep);
+}
+
+.sc-view--bevel-raised {
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+}
+
+.sc-view--bevel-sunken {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+}

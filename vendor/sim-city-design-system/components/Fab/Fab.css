@@ -1,0 +1,88 @@
+/*
+ * A 42px accent plate with the standard bevel flip. It floats by position,
+ * not by shadow — nothing in this system hovers, some things are just placed
+ * on top. Sits below every overlay: a shortcut never outranks a dialog.
+ */
+
+.sc-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  flex: none;
+  cursor: pointer;
+  user-select: none;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--accent);
+  color: var(--accent-ink);
+  z-index: 30;
+}
+
+.sc-fab:hover:not(:disabled) {
+  background: var(--warn);
+}
+
+.sc-fab:active:not(:disabled) {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink);
+}
+
+.sc-fab:disabled {
+  background: var(--face-raised);
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-fab--danger {
+  background: var(--danger);
+  color: var(--ink-invert);
+}
+
+.sc-fab--danger:hover:not(:disabled) {
+  background: var(--warn);
+  color: var(--accent-ink);
+}
+
+.sc-fab--extended {
+  padding: 0 12px 0 6px;
+}
+
+.sc-fab__label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+/* Corners: absolute within the nearest positioned ancestor, 16px margins.
+   Pinning to the screen is the app's wrapper's job (see Fab.tsx). */
+.sc-fab--pos-br,
+.sc-fab--pos-bl,
+.sc-fab--pos-tr,
+.sc-fab--pos-tl {
+  position: absolute;
+}
+
+.sc-fab--pos-br {
+  right: 16px;
+  bottom: 16px;
+}
+
+.sc-fab--pos-bl {
+  left: 16px;
+  bottom: 16px;
+}
+
+.sc-fab--pos-tr {
+  right: 16px;
+  top: 16px;
+}
+
+.sc-fab--pos-tl {
+  left: 16px;
+  top: 16px;
+}

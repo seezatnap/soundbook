@@ -1,0 +1,52 @@
+/*
+ * The LED off a 1993 equipment rack: eight pixels of pure status colour inside
+ * a 1px dark bezel, which is what stops a bright lamp from floating free of the
+ * chrome. Activity gets the teal accent, queued work the amber one — the two
+ * colours the system reserves for "something is happening" and "something is
+ * about to".
+ */
+
+.sc-status-light {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.sc-status-light__led {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border: 1px solid var(--edge-dark);
+  background: var(--face-deep);
+}
+
+.sc-status-light__label {
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.sc-status-light__led--ok {
+  background: var(--ok);
+}
+
+.sc-status-light__led--warn {
+  background: var(--warn);
+}
+
+.sc-status-light__led--danger {
+  background: var(--danger);
+}
+
+.sc-status-light__led--idle {
+  background: var(--ink-disabled);
+}
+
+.sc-status-light__led--active {
+  background: var(--accent-2);
+}
+
+.sc-status-light__led--queued {
+  background: var(--accent);
+}

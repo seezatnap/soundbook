@@ -1,0 +1,96 @@
+/*
+ * Raised, but only on the horizontal edges: a band that runs off both sides of
+ * the window has no left or right bevel to draw. Top light, bottom dark — the
+ * same lighting model as everything else, cropped.
+ */
+
+.sc-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border-top: 2px solid var(--edge-light);
+  border-bottom: 2px solid var(--edge-dark);
+  background-color: var(--face);
+  color: var(--ink);
+}
+
+.sc-banner__icon {
+  flex: none;
+  color: var(--accent-2);
+}
+
+.sc-banner--ok .sc-banner__icon {
+  color: var(--ok);
+}
+
+.sc-banner--warn .sc-banner__icon {
+  color: var(--warn);
+}
+
+.sc-banner--danger .sc-banner__icon {
+  color: var(--danger);
+}
+
+.sc-banner__body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sc-banner__title {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  flex: none;
+}
+
+.sc-banner__text {
+  color: var(--ink-dim);
+}
+
+.sc-banner__action {
+  flex: none;
+}
+
+/* Same hatched spine as the danger callout, so the two read as one family. */
+.sc-banner--danger {
+  padding-left: 16px;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--danger) 0 2px,
+    transparent 2px 6px
+  );
+  background-repeat: no-repeat;
+  background-size: 8px 100%;
+}
+
+.sc-banner--danger .sc-banner__text {
+  color: var(--ink);
+}
+
+.sc-banner__dismiss {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+}
+
+.sc-banner__dismiss:hover {
+  background: var(--face);
+}
+
+.sc-banner__dismiss:active {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}

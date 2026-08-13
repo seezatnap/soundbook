@@ -1,0 +1,129 @@
+/*
+ * A radio is a plate with a lit core: sunken 16px square, and when chosen,
+ * a solid 6px accent block inset 3px inside the well. No glyph, no circle —
+ * the inner block alone says "one of these, and it is this one".
+ */
+
+.sc-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sc-radio-group__label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+.sc-radio-group--disabled .sc-radio-group__label {
+  color: var(--ink-disabled);
+}
+
+.sc-radio-group__description {
+  color: var(--ink-dim);
+}
+
+.sc-radio-group--disabled .sc-radio-group__description {
+  color: var(--ink-disabled);
+}
+
+.sc-radio-group__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sc-radio-group__items--horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.sc-radio-group__error {
+  color: var(--danger);
+  letter-spacing: 0.04em;
+}
+
+.sc-radio {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--ink);
+}
+
+.sc-radio--disabled {
+  cursor: default;
+}
+
+.sc-radio__plate {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-radio:hover:not(.sc-radio--disabled) .sc-radio__plate {
+  background: var(--face-deep);
+}
+
+/* Checked floods the well, matching Checkbox: lit plate, core cut in ink. */
+.sc-radio[aria-checked='true'] .sc-radio__plate {
+  background: var(--accent);
+}
+
+.sc-radio[aria-checked='true']:hover:not(.sc-radio--disabled) .sc-radio__plate {
+  background: var(--warn);
+}
+
+/* The 12px well minus a 3px inset on each side leaves the 6px core. */
+.sc-radio__core {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-ink);
+}
+
+.sc-radio--disabled[aria-checked='true'] .sc-radio__plate {
+  background: var(--face-sunken);
+}
+
+.sc-radio--disabled .sc-radio__core {
+  background: var(--ink-disabled);
+}
+
+/* Focus lands on the row; the ring is drawn on the plate it operates. */
+.sc-radio:focus-visible {
+  outline: none;
+}
+
+.sc-radio:focus-visible .sc-radio__plate {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sc-radio__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-top: 1px; /* optically centers an 11px line against the 16px plate */
+}
+
+.sc-radio__label {
+  letter-spacing: 0.04em;
+}
+
+.sc-radio__description {
+  color: var(--ink-dim);
+}
+
+.sc-radio--disabled .sc-radio__label,
+.sc-radio--disabled .sc-radio__description {
+  color: var(--ink-disabled);
+}

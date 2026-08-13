@@ -1,0 +1,127 @@
+/*
+ * Row backgrounds live on the <tr>, not the cells, so zebra, hover and
+ * selection resolve in one place. The zebra rule is wrapped in :where() to
+ * zero its specificity: any explicit row state (hover, selected) must be able
+ * to beat the stripe without an arms race.
+ *
+ * border-collapse stays `separate` on purpose — collapsed borders detach from
+ * sticky header cells mid-scroll.
+ */
+
+.sc-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  background: var(--face);
+  color: var(--ink);
+}
+
+/* The register sits in a well: a sunken 2px frame. */
+.sc-table--frame {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+}
+
+/* --------------------------------------------------------------------------
+ * Header band.
+ * ------------------------------------------------------------------------ */
+
+.sc-table__head-cell {
+  padding: 4px 8px;
+  background: var(--face-sunken);
+  border-bottom: 2px solid var(--edge-dark);
+  color: var(--ink-dim);
+  font-size: 10px;
+  font-weight: normal;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.sc-table__head-cell--numeric {
+  text-align: right;
+}
+
+/* Layout, not decoration: the band holds to the top of the scroll region. */
+.sc-table--sticky-head .sc-table__head-cell {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* --------------------------------------------------------------------------
+ * Body rows.
+ * ------------------------------------------------------------------------ */
+
+.sc-table__cell {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--edge-dark);
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* The frame already draws the bottom edge; keep the height, drop the line. */
+.sc-table__body .sc-table__row:last-child > .sc-table__cell {
+  border-bottom-color: transparent;
+}
+
+.sc-table__cell--numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-table--striped :where(.sc-table__body .sc-table__row:nth-child(even)) {
+  background: var(--face-raised);
+}
+
+.sc-table__body .sc-table__row--interactive {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sc-table__body .sc-table__row--interactive:not(.sc-table__row--selected):hover {
+  background: var(--face-raised);
+}
+
+.sc-table__row--interactive:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Selection is the accent, full strength, hard-edged. */
+.sc-table__body .sc-table__row--selected {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* --------------------------------------------------------------------------
+ * Footer band and caption.
+ * ------------------------------------------------------------------------ */
+
+.sc-table__foot .sc-table__cell {
+  background: var(--face-sunken);
+  border-top: 2px solid var(--edge-dark);
+  border-bottom: 0;
+}
+
+.sc-table__caption {
+  caption-side: bottom;
+  padding: 4px 8px;
+  color: var(--ink-dim);
+  font-size: 10px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --------------------------------------------------------------------------
+ * Compact density.
+ * ------------------------------------------------------------------------ */
+
+.sc-table--compact .sc-table__head-cell,
+.sc-table--compact .sc-table__cell {
+  padding: 2px 6px;
+}

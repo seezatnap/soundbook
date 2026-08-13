@@ -1,0 +1,85 @@
+/*
+ * One lit block walks the ring. `steps(1, end)` holds each declared keyframe
+ * value outright, so the fill swaps between two solid colours with nothing in
+ * between — a fade would be frames of colours the palette never had. All eight
+ * blocks share one 800ms cycle and are offset from it by negative delays.
+ *
+ * The trail must stay legible on any surface in both chromes, while giving
+ * the head as much room as possible: dark chrome uses `--ink-disabled`; light
+ * chrome lightens the trail one step to `--face-sunken`, because against
+ * light surfaces a mid grey crowds the dark amber head. The walking head is
+ * `--accent`, the same amber that marks the active part of a glyph — light
+ * chrome's teal reads as just another grey at this size.
+ */
+
+.sc-spinner {
+  --sc-spinner-trail: var(--ink-disabled);
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+:root[data-chrome='light'] .sc-spinner {
+  --sc-spinner-trail: var(--face-sunken);
+}
+
+.sc-spinner__ring {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.sc-spinner__block {
+  fill: var(--sc-spinner-trail);
+  animation: sc-spinner-walk 800ms steps(1, end) infinite;
+}
+
+@keyframes sc-spinner-walk {
+  0% {
+    fill: var(--accent);
+  }
+  12.5% {
+    fill: var(--sc-spinner-trail);
+  }
+  100% {
+    fill: var(--sc-spinner-trail);
+  }
+}
+
+.sc-spinner__block:nth-child(1) {
+  animation-delay: -800ms;
+}
+
+.sc-spinner__block:nth-child(2) {
+  animation-delay: -700ms;
+}
+
+.sc-spinner__block:nth-child(3) {
+  animation-delay: -600ms;
+}
+
+.sc-spinner__block:nth-child(4) {
+  animation-delay: -500ms;
+}
+
+.sc-spinner__block:nth-child(5) {
+  animation-delay: -400ms;
+}
+
+.sc-spinner__block:nth-child(6) {
+  animation-delay: -300ms;
+}
+
+.sc-spinner__block:nth-child(7) {
+  animation-delay: -200ms;
+}
+
+.sc-spinner__block:nth-child(8) {
+  animation-delay: -100ms;
+}
+
+/* Stopped, the ring must still read as a ring rather than as one lost pixel. */
+@media (prefers-reduced-motion: reduce) {
+  .sc-spinner__block:nth-child(1) {
+    fill: var(--accent);
+  }
+}

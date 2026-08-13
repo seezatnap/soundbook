@@ -1,0 +1,57 @@
+/*
+ * A button that stays down. It is the ordinary raised face until it is on, at
+ * which point the bevel inverts and stays inverted — the same flip a plain
+ * button only shows while the mouse is held. The ink goes amber so the state
+ * survives a glance at a screenshot, where a bevel alone can be ambiguous.
+ */
+
+.sc-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  user-select: none;
+}
+
+.sc-toggle:hover:not(:disabled) {
+  background: var(--face);
+}
+
+.sc-toggle:active:not(:disabled),
+.sc-toggle[aria-pressed='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-toggle[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+/* Held down while already on: the face darkens one more step so the press
+   still registers against a state that is already sunken. */
+.sc-toggle[aria-pressed='true']:active:not(:disabled) {
+  background: var(--face-deep);
+}
+
+.sc-toggle:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-toggle[aria-pressed='true']:disabled {
+  color: var(--ink-disabled);
+}
+
+.sc-toggle--sm {
+  padding: 3px 6px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}

@@ -1,0 +1,39 @@
+/*
+ * Options-page rows. The rule between rows is a single dark line — a groove
+ * would make every row a panel, and these are lines in a ledger, not panels.
+ */
+
+.sc-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 2px;
+}
+
+.sc-settings-row + .sc-settings-row {
+  border-top: 1px solid var(--edge-dark);
+}
+
+.sc-settings-row__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sc-settings-row__label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-settings-row__description {
+  color: var(--ink-dim);
+}
+
+.sc-settings-row__control {
+  flex: none;
+  min-width: 0;
+}

@@ -1,0 +1,124 @@
+/*
+ * Global element styles and the handful of utilities the whole system shares.
+ * Component-specific styles live next to their components; only things that
+ * are truly universal belong here.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--face-deep);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* --------------------------------------------------------------------------
+ * Bevels: the one depth trick, raised and sunken.
+ * ------------------------------------------------------------------------ */
+
+.bevel {
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+}
+
+.bevel-in {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.bevel-thin {
+  border-width: 1px;
+}
+
+/* A hairline groove, used to separate bands inside a panel. */
+.rule {
+  height: 2px;
+  border-top: 1px solid var(--edge-dark);
+  border-bottom: 1px solid var(--edge-light);
+  margin: 3px 0;
+}
+
+/* A 50% checker at 1px — a real dither cell, axis-aligned so no edge is
+   ever anti-aliased the way a 45° stripe is. */
+.dither {
+  background-image: conic-gradient(
+    var(--edge-dark) 25%,
+    transparent 25% 50%,
+    var(--edge-dark) 50% 75%,
+    transparent 75%
+  );
+  background-size: 2px 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Hard-edged scrollbars to match. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--face-raised) var(--face-sunken);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--face-sunken);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--face-raised);
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

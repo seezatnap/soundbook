@@ -1,0 +1,80 @@
+/*
+ * A button that is all glyph and no label. Same bevel flip as `.sc-button`;
+ * the only new idea is that the box is square, so a row of them tiles like a
+ * tool palette with no ragged edges.
+ */
+
+.sc-icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-icon-button:hover:not(:disabled) {
+  background: var(--face);
+}
+
+/* Pressing shoves the whole face in; the glyph goes with it. */
+.sc-icon-button:active:not(:disabled),
+.sc-icon-button[aria-pressed='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-icon-button:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-icon-button--sm {
+  width: 24px;
+  height: 24px;
+}
+
+.sc-icon-button--md {
+  width: 32px;
+  height: 32px;
+}
+
+/* The 42px tool target from the spec, holding a double-size glyph. */
+.sc-icon-button--lg {
+  width: 42px;
+  height: 42px;
+}
+
+.sc-icon-button--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sc-icon-button--accent:hover:not(:disabled) {
+  background: var(--warn);
+}
+
+.sc-icon-button--danger {
+  background: var(--danger);
+  color: var(--ink-invert);
+}
+
+.sc-icon-button--danger:hover:not(:disabled) {
+  background: var(--warn);
+  color: var(--accent-ink);
+}
+
+.sc-icon-button--accent:active:not(:disabled),
+.sc-icon-button--danger:active:not(:disabled) {
+  background: var(--face-sunken);
+  color: var(--ink);
+}
+
+.sc-icon-button--accent:disabled,
+.sc-icon-button--danger:disabled {
+  background: var(--face-raised);
+}

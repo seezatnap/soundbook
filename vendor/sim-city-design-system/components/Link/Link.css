@@ -1,0 +1,33 @@
+/*
+ * Amber ink marks a link at rest; the underline only appears under the pointer
+ * or the focus ring. It is a hard 1px rule that runs straight through the
+ * descenders — an underline that dodges the letters is a typographic nicety
+ * this system has no pixels for.
+ */
+
+.sc-link {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sc-link:hover,
+.sc-link:focus-visible {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 2px;
+}
+
+.sc-link--disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+  text-decoration: none;
+}
+
+.sc-link__external {
+  margin-left: 2px;
+  /* Never underlined with the text: the marker is chrome, not part of the name. */
+  display: inline-block;
+  text-decoration: none;
+}

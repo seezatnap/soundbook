@@ -1,0 +1,43 @@
+/*
+ * Two raised bevels stacked against the right edge of a sunken well, exactly
+ * filling its 22px interior. They are a nudge for the mouse only — the keyboard
+ * has arrows — so they stay out of the tab order and never take focus.
+ */
+
+.sc-numberfield__steppers {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  height: 22px;
+  /* Cancels the well's right padding so the stack butts the sunken edge. */
+  margin-right: -6px;
+}
+
+.sc-numberfield__stepper {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 11px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+}
+
+.sc-numberfield__stepper:hover:not(:disabled) {
+  background: var(--face);
+}
+
+.sc-numberfield__stepper:active:not(:disabled) {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+/* At the end of the range the button is dead, not hidden: the limit is data. */
+.sc-numberfield__stepper:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

@@ -1,0 +1,115 @@
+/*
+ * Rows in a sunken frame. Hover shifts the face one step; selection is the
+ * accent, full strength; the trailing actions flip from hidden to visible in
+ * a single step on hover or focus-within. Row minimums: 28px normal, 22px
+ * compact — whole pixels, matching the register grid.
+ */
+
+.sc-listview {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face);
+  color: var(--ink);
+}
+
+/* Inside a ScrollArea the frame is the ScrollArea's; drop ours. */
+.sc-listview--bare {
+  border: 0;
+}
+
+.sc-listview__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 2px 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sc-listview__row + .sc-listview__row {
+  border-top: 1px solid var(--edge-dark);
+}
+
+.sc-listview--compact .sc-listview__row {
+  min-height: 22px;
+  padding: 1px 6px;
+  gap: 6px;
+}
+
+.sc-listview__row:hover:not(.sc-listview__row--selected) {
+  background: var(--face-raised);
+}
+
+.sc-listview__row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-listview__row--selected {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sc-listview__check,
+.sc-listview__glyph {
+  flex: none;
+}
+
+.sc-listview__check {
+  display: flex;
+}
+
+.sc-listview__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.sc-listview__label {
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-listview__description {
+  color: var(--ink-dim);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-listview__row--selected .sc-listview__description,
+.sc-listview__row--selected .sc-listview__meta {
+  color: var(--accent-ink);
+}
+
+.sc-listview__meta {
+  flex: none;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Revealed whole, never faded in. */
+.sc-listview__actions {
+  flex: none;
+  display: flex;
+  gap: 3px;
+  visibility: hidden;
+}
+
+.sc-listview__row:hover .sc-listview__actions,
+.sc-listview__row:focus-within .sc-listview__actions {
+  visibility: visible;
+}
+
+.sc-listview__empty {
+  padding: 16px 8px;
+  text-align: center;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}

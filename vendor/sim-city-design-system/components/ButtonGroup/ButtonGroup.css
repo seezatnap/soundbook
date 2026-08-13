@@ -1,0 +1,32 @@
+/*
+ * Adjacent buttons put a dark edge against a light one and the seam reads as a
+ * 4px gutter. Pulling each neighbour back by exactly the border width lets one
+ * edge do the work of two, so the run looks milled from a single plate.
+ */
+
+.sc-button-group {
+  display: inline-flex;
+  align-items: stretch;
+  vertical-align: top;
+}
+
+.sc-button-group--attached > * + * {
+  margin-left: -2px;
+}
+
+/* The overlapped edge belongs to whichever button the eye is on. */
+.sc-button-group--attached > *:hover,
+.sc-button-group--attached > *:focus-visible,
+.sc-button-group--attached > *:active,
+.sc-button-group--attached > *[aria-pressed='true'] {
+  position: relative;
+  z-index: 1;
+}
+
+.sc-button-group--attached > *:focus-visible {
+  z-index: 2;
+}
+
+.sc-button-group--spaced {
+  gap: 6px;
+}

@@ -1,0 +1,88 @@
+/*
+ * The well: a sunken bevel with everything the field owns living inside it —
+ * glyph, affixes, input, and whatever button a specialisation bolts on the end.
+ * The input itself is bare, so a "$" and the text sit on the same surface
+ * instead of on two stacked boxes.
+ *
+ * The 16px input row is deliberate: it is one icon grid tall, which makes the
+ * well 22px inside and lets a stack of two stepper buttons divide it exactly.
+ */
+
+.sc-textfield {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink);
+}
+
+/* The focus ring belongs to the well, not the bare input inside it, so the
+   accent lands on the sunken edge where the eye expects the field to be. */
+.sc-textfield:has(.sc-textfield__input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-textfield__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Removed only because the well above puts it back one bevel further out. */
+.sc-textfield__input:focus-visible {
+  outline: none;
+}
+
+.sc-textfield__input::placeholder {
+  color: var(--ink-dim);
+  opacity: 1;
+}
+
+/* The native search cancel button is a rounded × from another decade. */
+.sc-textfield__input::-webkit-search-cancel-button,
+.sc-textfield__input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.sc-textfield__icon,
+.sc-textfield__affix {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Invalid keeps the sunken direction and only re-inks the shadowed edges: the
+   field is still a hole, it is just a hole with a problem in it. */
+.sc-textfield--invalid {
+  border-color: var(--danger) var(--edge-light) var(--edge-light) var(--danger);
+}
+
+.sc-textfield--disabled,
+.sc-textfield--disabled .sc-textfield__icon,
+.sc-textfield--disabled .sc-textfield__affix,
+fieldset:disabled .sc-textfield,
+fieldset:disabled .sc-textfield__icon,
+fieldset:disabled .sc-textfield__affix {
+  color: var(--ink-disabled);
+}
+
+.sc-textfield__input:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

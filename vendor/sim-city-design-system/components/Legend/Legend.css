@@ -1,0 +1,38 @@
+/*
+ * The map key.
+ *
+ * Eight pixel swatches behind a dark rim, exactly the size of a minimap cell,
+ * so the key is drawn at the same resolution as the thing it explains. Labels
+ * are dim: the colour is the content, the word is the caption.
+ */
+
+.sc-legend {
+  display: grid;
+  gap: 2px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-dim);
+}
+
+.sc-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sc-legend__swatch {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--edge-dark);
+}
+
+.sc-legend__label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

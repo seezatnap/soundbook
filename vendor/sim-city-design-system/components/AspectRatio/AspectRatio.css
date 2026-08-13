@@ -1,0 +1,17 @@
+/*
+ * A frame with a fixed shape and nothing else: no bevel, no face, no padding.
+ * Whatever goes inside is stretched to the box rather than centred in it, so a
+ * map tile or a dithered plate lands on whole pixels at every edge.
+ */
+
+.sc-aspect-ratio {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.sc-aspect-ratio > * {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

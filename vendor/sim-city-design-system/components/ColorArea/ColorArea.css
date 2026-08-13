@@ -1,0 +1,107 @@
+/*
+ * A sunken bevel around a plane of hard cells. The rows are strips of
+ * hard-stop gradient — no cell bleeds into the next in either axis. The
+ * thumb's double keyline (ink inside, inverted ink outside) is the one
+ * marker guaranteed to survive every paint in the plane.
+ */
+
+.sc-colorarea {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sc-colorarea__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sc-colorarea__label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+.sc-colorarea--disabled .sc-colorarea__label {
+  color: var(--ink-disabled);
+}
+
+.sc-colorarea__value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-colorarea--disabled .sc-colorarea__value {
+  color: var(--ink-disabled);
+}
+
+.sc-colorarea__well {
+  display: inline-block;
+  align-self: flex-start;
+  line-height: 0;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-colorarea__stage {
+  position: relative;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sc-colorarea--disabled .sc-colorarea__stage {
+  cursor: default;
+}
+
+.sc-colorarea__rows {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.sc-colorarea__row {
+  display: block;
+}
+
+/* Disabled paint is struck through with chrome, never faded. */
+.sc-colorarea--disabled .sc-colorarea__stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--face) 0 2px,
+    transparent 2px 4px
+  );
+}
+
+.sc-colorarea__thumb {
+  position: absolute;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--ink);
+  outline: 1px solid var(--ink-invert);
+  outline-offset: 0;
+  background: transparent;
+  cursor: crosshair;
+}
+
+.sc-colorarea__thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sc-colorarea--disabled .sc-colorarea__thumb {
+  border-color: var(--ink-disabled);
+  cursor: default;
+}

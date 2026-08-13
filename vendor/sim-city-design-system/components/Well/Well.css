@@ -1,0 +1,11 @@
+/*
+ * One rule, applied without commentary: the sunken bevel with 8px of air.
+ */
+
+.sc-well {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  padding: 8px;
+  color: var(--ink);
+}

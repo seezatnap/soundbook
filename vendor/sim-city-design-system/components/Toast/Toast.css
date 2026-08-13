@@ -1,0 +1,54 @@
+/*
+ * Bottom-right, anchored to the bottom edge so the column grows and snaps
+ * upward — no slide easing, positions just change. Above popovers, below
+ * tooltips: a notice may arrive over anything.
+ */
+
+.sc-toast__stack {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.sc-toast {
+  width: min(300px, calc(100vw - 24px));
+}
+
+.sc-toast__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* The glyph carries the variant; the band stays chrome-coloured. */
+.sc-toast--info .sc-toast__glyph {
+  color: var(--accent-2);
+}
+
+.sc-toast--ok .sc-toast__glyph {
+  color: var(--ok);
+}
+
+.sc-toast--warn .sc-toast__glyph {
+  color: var(--warn);
+}
+
+.sc-toast--danger .sc-toast__glyph {
+  color: var(--danger);
+}
+
+.sc-toast__desc {
+  color: var(--ink-dim);
+}
+
+.sc-toast__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}

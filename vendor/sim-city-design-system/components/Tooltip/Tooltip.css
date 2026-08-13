@@ -1,0 +1,19 @@
+/*
+ * One pixel of bevel: a smaller depth for a smaller thing. The plate sits on
+ * the deepest face so it reads as an annotation, not another panel.
+ */
+
+.sc-tooltip {
+  position: fixed;
+  z-index: 80;
+  max-width: 240px;
+  padding: 3px 6px;
+  border: 1px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-deep);
+  color: var(--ink);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+}

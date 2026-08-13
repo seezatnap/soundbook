@@ -1,0 +1,69 @@
+/*
+ * The panel is the unit of chrome: a raised bevel with a sunken title band.
+ * Dialogs, tickers, minimaps and inspectors are all panels wearing different
+ * contents; nothing else in the system gets to invent its own frame.
+ */
+
+.sc-panel {
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+}
+
+.sc-panel__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 2px 6px;
+  background: var(--face-sunken);
+  border-bottom: 2px solid var(--edge-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+/* Classic pinstriped title bar: hard 1px stops, never a gradient. */
+.sc-panel__title--striped {
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--edge-light) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+.sc-panel__title-text {
+  background: var(--face-sunken);
+  padding-right: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-panel__body {
+  padding: 6px;
+}
+
+.sc-panel__body--flush {
+  padding: 0;
+}
+
+.sc-panel__close {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  line-height: 1;
+}
+
+.sc-panel__close:active {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+}

@@ -1,0 +1,32 @@
+/*
+ * The paint shop is a stack the exact width of the 16x16 mixing plane, so
+ * the hue track, specimen strip, code well and swatch tray all read as one
+ * fixture bolted to the same bench.
+ */
+
+.sc-colorpicker {
+  display: inline-block;
+}
+
+.sc-colorpicker__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 196px;
+}
+
+.sc-colorpicker__specimen {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 20px;
+  padding: 0 6px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  user-select: none;
+}
+
+.sc-colorpicker__specimen-hex {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}

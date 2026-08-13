@@ -1,0 +1,71 @@
+/*
+ * A tag is a sunken plate: it reads as something dropped into the form rather
+ * than something raised off it, which is why the bevel is inverted and only one
+ * pixel deep — a chip this small cannot spend two pixels a side on edges.
+ */
+
+.sc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  padding: 0 4px;
+  border: 1px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink);
+  line-height: 16px;
+  user-select: none;
+}
+
+/* The ✕ brings its own 16px of padding, so the right side gives its back. */
+.sc-tag--removable {
+  padding-right: 1px;
+}
+
+.sc-tag__text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sc-tag__remove {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.sc-tag__remove:hover {
+  color: var(--ink);
+}
+
+/* No room for a bevel at 16px, so the press is drawn as a well behind the ✕. */
+.sc-tag__remove:active {
+  background: var(--face-deep);
+}
+
+.sc-tag__remove:focus-visible {
+  outline-offset: -1px;
+}
+
+.sc-tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+
+.sc-tag-group__item {
+  display: inline-flex;
+  min-width: 0;
+}

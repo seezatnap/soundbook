@@ -1,0 +1,93 @@
+/*
+ * The plate IS the data: one 1px dark keyline so a paint the colour of the
+ * chrome still reads as an object sitting on it. Selection rings in accent
+ * and stamps a corner check; disabled paint is struck through with chrome
+ * stripes, never faded — opacity is a blend, and blends do not exist on this
+ * machine.
+ */
+
+.sc-swatch {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--edge-dark);
+}
+
+.sc-swatch--16 {
+  width: 16px;
+  height: 16px;
+}
+
+.sc-swatch--32 {
+  width: 32px;
+  height: 32px;
+}
+
+.sc-swatch--interactive {
+  cursor: pointer;
+}
+
+.sc-swatch--selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+/* Focus sits one step further out than the selection ring, so a focused
+   selected plate reads as both at once. */
+.sc-swatch--interactive:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sc-swatch__check {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sc-swatch--disabled {
+  cursor: default;
+}
+
+.sc-swatch--disabled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--face) 0 2px,
+    transparent 2px 4px
+  );
+}
+
+.sc-swatch-group {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sc-swatch-group__label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+.sc-swatch-group--disabled .sc-swatch-group__label {
+  color: var(--ink-disabled);
+}
+
+/* 4px gutters leave room for the 2px selection ring between neighbours. */
+.sc-swatch-group__grid {
+  display: grid;
+  gap: 4px;
+  justify-content: start;
+}

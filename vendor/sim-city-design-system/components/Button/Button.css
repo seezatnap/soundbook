@@ -1,0 +1,74 @@
+/*
+ * A button is a raised face until it is pressed, and a sunken one while it is.
+ * The bevel flip *is* the affordance — there are no shadows or tints to lean
+ * on, so the border colours do all the talking.
+ */
+
+.sc-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  user-select: none;
+}
+
+.sc-button:hover:not(:disabled) {
+  background: var(--face);
+}
+
+.sc-button:active:not(:disabled),
+.sc-button[aria-pressed='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-button:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-button--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sc-button--accent:hover:not(:disabled) {
+  background: var(--warn);
+}
+
+/* Reserved for actions that destroy something committed. */
+.sc-button--danger {
+  background: var(--danger);
+  color: var(--ink-invert);
+}
+
+.sc-button--danger:hover:not(:disabled) {
+  background: var(--warn);
+  color: var(--accent-ink);
+}
+
+.sc-button--accent:disabled,
+.sc-button--danger:disabled {
+  background: var(--face-raised);
+}
+
+.sc-button--accent:active:not(:disabled),
+.sc-button--danger:active:not(:disabled) {
+  background: var(--face-sunken);
+  color: var(--ink);
+}
+
+/* The compact form for inline actions; keeps its case, drops the shouting. */
+.sc-button--sm {
+  padding: 3px 6px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}

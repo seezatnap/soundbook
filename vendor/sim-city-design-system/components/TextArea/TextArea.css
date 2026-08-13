@@ -1,0 +1,37 @@
+/*
+ * The same sunken well as a text field, given several lines. It carries no
+ * affixes, so the bevel sits on the control itself rather than on a wrapper.
+ */
+
+.sc-textarea__input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink);
+  /* A 1993 field does not stretch: the form decides how much room a remark
+     gets, not the person filling it in. */
+  resize: none;
+}
+
+.sc-textarea__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-textarea__input::placeholder {
+  color: var(--ink-dim);
+  opacity: 1;
+}
+
+.sc-textarea__input--invalid {
+  border-color: var(--danger) var(--edge-light) var(--edge-light) var(--danger);
+}
+
+.sc-textarea__input:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

@@ -1,0 +1,12 @@
+/*
+ * The surface is a Panel; the popover only supplies the pin. It sits above
+ * the dialog scrim (z 50) because in a stack the popover is always the newer,
+ * more specific question.
+ */
+
+.sc-popover {
+  position: fixed;
+  z-index: 60;
+  min-width: 160px;
+  max-width: min(320px, calc(100vw - 8px));
+}

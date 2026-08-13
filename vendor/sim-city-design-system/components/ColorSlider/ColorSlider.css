@@ -1,0 +1,105 @@
+/*
+ * A 20px sunken well filled edge to edge with hard payload cells; the thumb
+ * is the same 12x20 raised plate as Slider's, flipping to sunken while held.
+ * The ramp is a hard-stop gradient built in JS — the CSS here only frames it.
+ */
+
+.sc-colorslider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.sc-colorslider__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sc-colorslider__label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+.sc-colorslider--disabled .sc-colorslider__label {
+  color: var(--ink-disabled);
+}
+
+.sc-colorslider__value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-colorslider--disabled .sc-colorslider__value {
+  color: var(--ink-disabled);
+}
+
+.sc-colorslider__stage {
+  position: relative;
+  height: 20px;
+  touch-action: none;
+}
+
+.sc-colorslider--disabled .sc-colorslider__stage {
+  cursor: default;
+}
+
+.sc-colorslider__well {
+  position: absolute;
+  inset: 0;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  overflow: hidden;
+}
+
+.sc-colorslider__ramp {
+  position: absolute;
+  inset: 0;
+  image-rendering: pixelated;
+}
+
+/* Disabled paint is struck through with chrome, never faded. */
+.sc-colorslider--disabled .sc-colorslider__well::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--face) 0 2px,
+    transparent 2px 4px
+  );
+}
+
+.sc-colorslider__thumb {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 20px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  cursor: pointer;
+}
+
+/* Held: the plate presses in, like everything else being operated. */
+.sc-colorslider__thumb--dragging {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-colorslider__thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sc-colorslider--disabled .sc-colorslider__thumb {
+  background: var(--face);
+  cursor: default;
+}

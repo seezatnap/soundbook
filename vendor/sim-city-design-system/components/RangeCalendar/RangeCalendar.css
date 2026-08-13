@@ -1,0 +1,10 @@
+/*
+ * The range grid borrows every plate style from Calendar — the in-range
+ * checker and the preview pinstripe live there, painted by CalendarBase.
+ * This wrapper only exists so the Escape-cancels-the-stake handler has a
+ * block of its own to stand on.
+ */
+
+.sc-rangecalendar {
+  display: inline-block;
+}

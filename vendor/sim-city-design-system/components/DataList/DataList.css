@@ -1,0 +1,73 @@
+/*
+ * Terms are dim and uppercase like every other caption in the building;
+ * values get full ink and tabular figures so a column of them reads like a
+ * ledger. Rules between pairs are plain 1px --edge-dark, not grooves — the
+ * rows are entries, not bands.
+ */
+
+.sc-datalist {
+  margin: 0;
+  color: var(--ink);
+}
+
+.sc-datalist__row {
+  padding: 4px 0;
+}
+
+.sc-datalist__row + .sc-datalist__row {
+  border-top: 1px solid var(--edge-dark);
+}
+
+.sc-datalist--horizontal .sc-datalist__row {
+  display: grid;
+  grid-template-columns: var(--sc-datalist-label-width, 140px) 1fr;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+
+.sc-datalist--vertical .sc-datalist__row {
+  display: grid;
+  gap: 1px;
+}
+
+.sc-datalist__label {
+  color: var(--ink-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sc-datalist__value {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+ * LabeledValue: the pair on its own, no rules.
+ * ------------------------------------------------------------------------ */
+
+.sc-labeled-value {
+  color: var(--ink);
+}
+
+.sc-labeled-value--vertical {
+  display: inline-grid;
+  gap: 1px;
+}
+
+.sc-labeled-value--horizontal {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sc-labeled-value__label {
+  color: var(--ink-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sc-labeled-value__value {
+  font-variant-numeric: tabular-nums;
+}

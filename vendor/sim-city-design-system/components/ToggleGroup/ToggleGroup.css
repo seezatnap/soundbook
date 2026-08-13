@@ -1,0 +1,85 @@
+/*
+ * The segmented run: the same bevel flip as a toggle, but the segments share
+ * their edges. A selected segment sits a step deeper than its neighbours and
+ * takes accent ink, which is the only way a sunken face reads as *chosen*
+ * rather than merely held down.
+ */
+
+.sc-toggle-group {
+  display: inline-flex;
+  align-items: stretch;
+  vertical-align: top;
+}
+
+.sc-toggle-group--attached > * + * {
+  margin-left: -2px;
+}
+
+.sc-toggle-group--spaced {
+  gap: 6px;
+}
+
+.sc-toggle-group__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  padding: 5px 12px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  user-select: none;
+}
+
+.sc-toggle-group__item:hover:not(:disabled) {
+  background: var(--face);
+}
+
+.sc-toggle-group__item:active:not(:disabled),
+.sc-toggle-group__item--on {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-toggle-group__item--on {
+  color: var(--accent);
+}
+
+.sc-toggle-group__item--on:hover:not(:disabled) {
+  background: var(--face-sunken);
+}
+
+.sc-toggle-group__item--on:active:not(:disabled) {
+  background: var(--face-deep);
+}
+
+.sc-toggle-group__item:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+/* Whichever segment the eye is on owns the shared edge. */
+.sc-toggle-group__item:hover,
+.sc-toggle-group__item:active,
+.sc-toggle-group__item--on {
+  position: relative;
+  z-index: 1;
+}
+
+.sc-toggle-group__item:focus-visible {
+  position: relative;
+  z-index: 2;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-toggle-group__item--sm {
+  padding: 3px 6px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}

@@ -1,0 +1,38 @@
+/*
+ * No frame of its own: an empty state is the inside of a panel that has run
+ * out of records, so it borrows whatever surface it was dropped onto and only
+ * centres itself in it.
+ */
+
+.sc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 12px;
+  text-align: center;
+}
+
+/* Dim, because the glyph is furniture — the title is the message. */
+.sc-empty__icon {
+  color: var(--ink-disabled);
+  margin-bottom: 2px;
+}
+
+.sc-empty__title {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+
+.sc-empty__desc {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--ink-dim);
+}
+
+.sc-empty__action {
+  margin-top: 2px;
+}

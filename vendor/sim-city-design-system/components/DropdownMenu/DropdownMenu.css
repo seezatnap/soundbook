@@ -1,0 +1,9 @@
+/*
+ * The dropdown owns almost nothing visually — the panel is Menu chrome and
+ * the trigger is whatever the caller renders. The wrapper span only exists to
+ * be measured, so it must hug its contents exactly.
+ */
+
+.sc-dropdown {
+  display: inline-flex;
+}

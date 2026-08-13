@@ -1,0 +1,69 @@
+/*
+ * Genuine folder tabs. The list overlaps the panel's 2px top edge; unselected
+ * tabs stop 2px short of it so the panel's light border runs beneath them,
+ * while the selected tab grows 2px taller, drops its bottom border and lays
+ * its own face over the edge. No shadows — the geometry does everything.
+ */
+
+.sc-tabs {
+  display: block;
+}
+
+.sc-tabs__list {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 0 0 6px;
+  margin-bottom: -2px;
+  position: relative;
+  z-index: 1;
+}
+
+.sc-tabs__tab {
+  padding: 4px 12px;
+  margin-bottom: 2px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  border-bottom: 0;
+  background: var(--face);
+  color: var(--ink-dim);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sc-tabs__tab:hover:not(:disabled):not([aria-selected='true']) {
+  background: var(--face-raised);
+}
+
+/* The tab that is "up": 2px taller, raised face, fused to the panel. */
+.sc-tabs__tab[aria-selected='true'] {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  margin-bottom: 0;
+  background: var(--face-raised);
+  color: var(--ink);
+}
+
+.sc-tabs__tab:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-tabs__tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
+}
+
+.sc-tabs__panel {
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+  padding: 8px;
+}
+
+.sc-tabs__panel:focus-visible {
+  outline-offset: -4px;
+}

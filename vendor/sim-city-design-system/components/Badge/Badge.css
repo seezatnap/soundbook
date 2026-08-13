@@ -1,0 +1,44 @@
+/*
+ * A badge is a stamped plate, not a pill: square corners, a hard 1px dark
+ * keyline on every variant so a filled status colour never bleeds into the
+ * surface behind it, and tabular figures so a column of counts lines up.
+ */
+
+.sc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--edge-dark);
+  background: var(--face-raised);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  /* 14px of line inside a 1px keyline makes the plate exactly 16px tall, so a
+     badge sits on the same grid as a 16px glyph. */
+  line-height: 14px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sc-badge--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sc-badge--ok {
+  background: var(--ok);
+  color: var(--ink-invert);
+}
+
+.sc-badge--warn {
+  background: var(--warn);
+  color: var(--ink-invert);
+}
+
+.sc-badge--danger {
+  background: var(--danger);
+  color: var(--ink-invert);
+}

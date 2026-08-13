@@ -1,0 +1,72 @@
+/*
+ * The menu bar sits flush at the top of the chrome: flat titles that raise a
+ * step on hover and sink — bevel inverted — while their menu hangs open
+ * directly beneath. Panels are Menu chrome, positioned in-flow under the
+ * title the way the original did it.
+ */
+
+.sc-menubar {
+  display: flex;
+  align-items: stretch;
+  padding: 2px 2px 0;
+  background: var(--face);
+  border-bottom: 2px solid var(--edge-dark);
+  position: relative;
+  z-index: 20;
+  user-select: none;
+}
+
+.sc-menubar__brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 2px 6px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.sc-menubar__spacer {
+  flex: 1;
+}
+
+.sc-menubar__aside {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 2px;
+  color: var(--ink-dim);
+}
+
+.sc-menubar__menu {
+  position: relative;
+}
+
+.sc-menubar__title {
+  appearance: none;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  padding: 3px 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sc-menubar__title:hover {
+  background: var(--face-raised);
+}
+
+/* The open title is pressed: bevel inverted, face sunken. */
+.sc-menubar__title[aria-expanded='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-menubar__panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+}

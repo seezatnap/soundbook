@@ -1,0 +1,50 @@
+/*
+ * The `.rule` groove drawn as a box: 1px dark on the outside, 1px light just
+ * inside it, so the whole group looks scored into the panel rather than boxed
+ * on top of it. The legend is the same dim uppercase band as a panel title,
+ * cut into the top edge.
+ */
+
+.sc-fieldset {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--edge-dark);
+  background: var(--face);
+  color: var(--ink);
+}
+
+.sc-fieldset::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--edge-light);
+  pointer-events: none;
+}
+
+.sc-fieldset__legend {
+  /* Positioned so it paints over the groove it interrupts. */
+  position: relative;
+  margin-left: 2px;
+  padding: 1px 6px;
+  border: 1px solid var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  user-select: none;
+}
+
+.sc-fieldset__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Switched off, the whole group goes to disabled ink — the border stays, since
+   the group still exists, it simply has nothing to say today. */
+.sc-fieldset:disabled,
+.sc-fieldset:disabled .sc-fieldset__legend {
+  color: var(--ink-disabled);
+}

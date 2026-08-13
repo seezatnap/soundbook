@@ -1,0 +1,96 @@
+/*
+ * Site navigation chrome. Top-level items are flat until hovered, and the
+ * expanded trigger sinks like every other pressed thing; the dropdown is a
+ * Panel hung in-flow beneath it so the tab order runs straight into the
+ * cards. The current page carries a hard amber underline.
+ */
+
+.sc-navmenu {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 2px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+  user-select: none;
+}
+
+.sc-navmenu__item {
+  position: relative;
+  display: flex;
+}
+
+.sc-navmenu__link,
+.sc-navmenu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sc-navmenu__link:hover,
+.sc-navmenu__trigger:hover {
+  background: var(--face-raised);
+}
+
+.sc-navmenu__trigger[aria-expanded='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-navmenu__link[aria-current='page'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.sc-navmenu__panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+  min-width: 400px;
+}
+
+.sc-navmenu__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.sc-navmenu__card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.sc-navmenu__card:hover,
+.sc-navmenu__card:focus-visible {
+  background: var(--accent);
+  color: var(--accent-ink);
+  outline: none; /* the selection bar is the focus indicator */
+}
+
+.sc-navmenu__card-title {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sc-navmenu__card-desc {
+  color: var(--ink-dim);
+}
+
+.sc-navmenu__card:hover .sc-navmenu__card-desc,
+.sc-navmenu__card:focus-visible .sc-navmenu__card-desc {
+  color: var(--accent-ink);
+}

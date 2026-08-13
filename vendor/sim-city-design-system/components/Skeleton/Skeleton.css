@@ -1,0 +1,45 @@
+/*
+ * A sunken plate under the standard 45° dither. The "shimmer" is the dither
+ * shifting phase twice a second and nothing else: two states, held hard, in
+ * the manner of a 256-colour machine faking motion by swapping palette entries.
+ */
+
+.sc-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sc-skeleton__plate {
+  background-color: var(--face-sunken);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--edge-dark) 0 1px,
+    transparent 1px 2px
+  );
+  animation: sc-skeleton-dither 1200ms steps(2, end) infinite;
+}
+
+/* One bar per line of 11px type. */
+.sc-skeleton__bar {
+  height: 11px;
+}
+
+.sc-skeleton__bar--last {
+  width: 58%;
+}
+
+/* Sized by props; these are only the fallbacks for a plate given neither. */
+.sc-skeleton--rect {
+  width: 100%;
+  height: 48px;
+}
+
+@keyframes sc-skeleton-dither {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 4px;
+  }
+}

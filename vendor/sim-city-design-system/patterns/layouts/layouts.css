@@ -1,0 +1,338 @@
+/*
+ * Shared chrome for the page-layout patterns.
+ *
+ * These classes are composition glue, not components: the shell grid ported
+ * from the infinimap original (menu bar over tool rail over status bar, map
+ * sunk into the middle), the header band the flat pages share, and the pixel
+ * city that plays the part of the world. Anything with behaviour lives in the
+ * component library; this file only draws floors and walls.
+ */
+
+/* --------------------------------------------------------------------------
+ * The application shell: three rows, the middle one a rail-and-work grid.
+ * ------------------------------------------------------------------------ */
+
+.sc-lay-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100dvh;
+  background: var(--face-deep);
+  overflow: hidden;
+}
+
+.sc-lay-shell__body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-height: 0;
+  min-width: 0;
+}
+
+.sc-lay-shell__main {
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+/* The work surface: the one region sunk INTO the chrome rather than raised
+   on it, because the city is under the glass, not part of the machine. */
+.sc-lay-mapfield {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--map-out);
+  overflow: hidden;
+}
+
+/* The chunk grid overlay: hard 1px lines on a 64px pitch, toggled from VIEW. */
+.sc-lay-mapfield__grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, var(--map-grid-strong) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, var(--map-grid-strong) 0 1px, transparent 1px 64px);
+}
+
+.sc-lay-float {
+  position: absolute;
+  z-index: 4;
+}
+
+.sc-lay-float--tl {
+  top: 8px;
+  left: 8px;
+}
+
+.sc-lay-float--tr {
+  top: 8px;
+  right: 8px;
+}
+
+.sc-lay-float--br {
+  right: 8px;
+  bottom: 8px;
+}
+
+/* --------------------------------------------------------------------------
+ * The pixel city: a deterministic grid of tiles, coloured from --map-*.
+ * ------------------------------------------------------------------------ */
+
+.sc-lay-city {
+  position: relative;
+  display: grid;
+}
+
+.sc-lay-city__label {
+  position: absolute;
+  color: var(--map-label);
+  /* A 1px hard offset, not a blur: the one shadow a 256-colour display had. */
+  text-shadow: 1px 1px 0 var(--map-label-shadow);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The minimap's viewport rectangle: a gesture, so it takes the marquee ink. */
+.sc-lay-viewbox {
+  position: absolute;
+  border: 1px solid var(--map-select);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+ * The header band flat pages share: title left, actions right, hard rule
+ * below. A cousin of the menu bar, one register quieter.
+ * ------------------------------------------------------------------------ */
+
+.sc-lay-band {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--face);
+  border-bottom: 2px solid var(--edge-dark);
+  min-width: 0;
+}
+
+.sc-lay-band__title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+.sc-lay-band__sub {
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A pane's own scroll region; the frame, if any, belongs to the pane. */
+.sc-lay-scroll {
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* --------------------------------------------------------------------------
+ * The survey plate: a sunken, dithered work surface for the inspector.
+ * ------------------------------------------------------------------------ */
+
+.sc-lay-plate {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background-color: var(--map-void);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--map-void-dither) 0 1px,
+    transparent 1px 3px
+  );
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 12px;
+}
+
+/* --------------------------------------------------------------------------
+ * File-manager grid view: chunky tiles, selected = pressed, like any tool.
+ * ------------------------------------------------------------------------ */
+
+.sc-lay-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 8px;
+}
+
+.sc-lay-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px 8px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+  user-select: none;
+}
+
+.sc-lay-tile:hover {
+  background: var(--face);
+}
+
+.sc-lay-tile[aria-pressed='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  color: var(--accent);
+}
+
+.sc-lay-tile__name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.sc-lay-tile__meta {
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.08em;
+}
+
+.sc-lay-tile[aria-pressed='true'] .sc-lay-tile__meta {
+  color: inherit;
+}
+
+/* --------------------------------------------------------------------------
+ * The reading page: a centred 560px column of quiet type.
+ * ------------------------------------------------------------------------ */
+
+.sc-lay-docpage {
+  height: 100dvh;
+  overflow: auto;
+  background: var(--face-deep);
+}
+
+.sc-lay-doc {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px 12px 40px;
+}
+
+.sc-lay-doc__plate {
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+  padding: 16px;
+  margin-top: 8px;
+}
+
+/* The display band: the ordinance announces itself in a sunken masthead. */
+.sc-lay-doc__masthead {
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.sc-lay-doc__kicker {
+  margin: 0 0 4px;
+  color: var(--ink-dim);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.sc-lay-doc__title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sc-lay-doc__section {
+  margin: 16px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+/* Reading size: two points up from chrome, and looser leading. */
+.sc-lay-doc__body {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sc-lay-doc__body p {
+  margin: 8px 0;
+}
+
+.sc-lay-doc__quote {
+  margin: 12px 0;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+
+.sc-lay-doc__attribution {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.14em;
+}
+
+.sc-lay-doc__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* --------------------------------------------------------------------------
+ * The docket timeline: dated rows ruled apart, a lamp per event.
+ * ------------------------------------------------------------------------ */
+
+.sc-lay-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sc-lay-timeline__row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--edge-dark);
+}
+
+.sc-lay-timeline__row:last-child {
+  border-bottom: 0;
+}
+
+.sc-lay-timeline__date {
+  flex: none;
+  width: 90px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}

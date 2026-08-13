@@ -1,0 +1,41 @@
+/*
+ * The combobox borrows the TextField well wholesale; all it adds is a flat
+ * chevron at the well's end — a glyph, not a bevelled button, so the field
+ * keeps the standard 26px field height — and a fixed-position popup pin.
+ */
+
+.sc-combobox__button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.sc-combobox__button:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+/* No room for a bevel at 16px: the press is a well behind the glyph. */
+.sc-combobox__button:active:not(:disabled),
+.sc-combobox__button--open {
+  background: var(--face-deep);
+  color: var(--ink);
+}
+
+.sc-combobox__button:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+/* Above the dialog scrim: in a stack the popup is the newer question. */
+.sc-combobox__popup {
+  position: fixed;
+  z-index: 60;
+  max-width: min(360px, calc(100vw - 8px));
+}

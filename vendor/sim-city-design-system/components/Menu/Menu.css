@@ -1,0 +1,92 @@
+/*
+ * Menu chrome. A raised panel of flat rows; the amber selection bar is the
+ * whole highlight vocabulary — full-strength, hard-edged, one row at a time.
+ * Hover focuses the row, so `:focus` alone lights it and pointer and keyboard
+ * can never disagree about which row is current.
+ */
+
+.sc-menu__panel {
+  min-width: 210px;
+  padding: 3px;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face);
+  user-select: none;
+}
+
+/* Submenu levels and other portalled panels pin themselves in fixed space. */
+.sc-menu__panel--floating {
+  position: fixed;
+  z-index: 40;
+}
+
+.sc-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 8px 3px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.sc-menu__item:focus {
+  background: var(--accent);
+  color: var(--accent-ink);
+  outline: none; /* the selection bar is the focus indicator */
+}
+
+.sc-menu__item:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+/* Always reserved, so labels align whether or not anything is checked. */
+.sc-menu__lead {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-menu__label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.sc-menu__hint {
+  flex: none;
+  margin-left: 12px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.sc-menu__item:focus .sc-menu__hint {
+  color: var(--accent-ink);
+}
+
+.sc-menu__more {
+  flex: none;
+  margin-left: 12px;
+  display: inline-flex;
+}
+
+.sc-menu__heading {
+  padding: 4px 8px 2px 4px;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  user-select: none;
+}
+
+.sc-menu__rule {
+  margin: 3px 2px;
+}

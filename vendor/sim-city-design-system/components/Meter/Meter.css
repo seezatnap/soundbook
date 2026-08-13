@@ -1,0 +1,67 @@
+/*
+ * Same well as the progress channel, filled solid. Where a progress bar shows
+ * work being done in discrete blocks, a meter shows a level that simply is —
+ * so it gets one unbroken slab of colour, and the colour carries the verdict.
+ */
+
+.sc-meter__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.sc-meter__label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sc-meter__value {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.sc-meter__value--warn {
+  color: var(--warn);
+}
+
+.sc-meter__value--danger {
+  color: var(--danger);
+}
+
+.sc-meter__channel {
+  height: 10px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+  overflow: hidden;
+}
+
+.sc-meter__fill {
+  height: 100%;
+  transition: none;
+  background: var(--ok);
+}
+
+.sc-meter__fill--warn {
+  background: var(--warn);
+}
+
+.sc-meter__fill--danger {
+  background: var(--danger);
+}
+
+.sc-meter__range {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}

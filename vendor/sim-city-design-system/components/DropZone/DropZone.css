@@ -1,0 +1,76 @@
+/*
+ * The well is sunken and dithered like unzoned land. Drag-over is a hard 2px
+ * accent frame drawn just inside the bevel; refusal is the danger hatch from
+ * the spec, blinked twice in whole steps. No tints, no fades.
+ */
+
+.sc-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background-color: var(--face-sunken);
+}
+
+.sc-dropzone__glyph {
+  color: var(--ink-dim);
+}
+
+.sc-dropzone__caption {
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  user-select: none;
+}
+
+.sc-dropzone--over .sc-dropzone__glyph,
+.sc-dropzone--over .sc-dropzone__caption {
+  color: var(--accent);
+}
+
+/* The inner keyline: a drawn frame, sitting flush inside the sunken bevel. */
+.sc-dropzone__keyline {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+}
+
+.sc-dropzone--rejected .sc-dropzone__caption {
+  color: var(--danger);
+}
+
+/* Danger hatch per the spec: 2px stripes on an 8px pitch, blinked twice. */
+.sc-dropzone__hatch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--danger) 0 2px,
+    transparent 2px 8px
+  );
+  animation: sc-dropzone-flash 320ms steps(1, end) 2;
+}
+
+@keyframes sc-dropzone-flash {
+  0%,
+  49% {
+    visibility: visible;
+  }
+  50%,
+  100% {
+    visibility: hidden;
+  }
+}
+
+.sc-dropzone--disabled .sc-dropzone__glyph,
+.sc-dropzone--disabled .sc-dropzone__caption {
+  color: var(--ink-disabled);
+}

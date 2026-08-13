@@ -1,0 +1,36 @@
+/*
+ * The trigger is an IconButton in everything but size: 22px, the exact
+ * interior height of the well, with negative margins swallowing the well's
+ * padding so the field never grows past one icon-row tall. While the popover
+ * is open the button stays pressed — the bevel flip is the open state.
+ */
+
+.sc-datepicker__trigger {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -3px -6px -3px 0;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+}
+
+.sc-datepicker__trigger:hover:not(:disabled) {
+  background: var(--face);
+}
+
+.sc-datepicker__trigger:active:not(:disabled),
+.sc-datepicker__trigger[aria-expanded='true']:not(:disabled) {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-datepicker__trigger:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}

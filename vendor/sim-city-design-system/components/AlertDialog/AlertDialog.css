@@ -1,0 +1,25 @@
+/*
+ * The destructive treatment is the infinimap warn band, verbatim: a sunken
+ * strip with a danger hatch pinned to its left edge. A hatched band, never a
+ * tinted background.
+ */
+
+.sc-alertdialog__desc {
+  margin: 0;
+  color: var(--ink-dim);
+}
+
+.sc-alertdialog__desc--warn {
+  padding: 5px 6px 5px 14px;
+  color: var(--ink);
+  border: 2px solid;
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background-color: var(--face-sunken);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--danger) 0 2px,
+    transparent 2px 6px
+  );
+  background-repeat: no-repeat;
+  background-size: 8px 100%;
+}

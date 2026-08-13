@@ -1,0 +1,306 @@
+/*
+ * The workshop floor. Header band, transport toolbar, lab browser, stage +
+ * generated params, inspection drawer, status bar — all sim-city chrome,
+ * all driven by the session document and the shared audio engine.
+ */
+
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
+import { IconButton } from '@simcity/components/IconButton';
+import { SplitPane } from '@simcity/components/SplitPane';
+import { LED, Readout, StatusBar } from '@simcity/components/StatusBar';
+import { useToast } from '@simcity/components/Toast';
+import { hash32 } from '@/sdk/prng';
+import { morphParams } from '@/sdk/params';
+import type { NoteEvent } from '@/sdk/events';
+import { useSession } from '@/shell/useSession';
+import { useAudio } from '@/shell/useAudio';
+import { LabBrowser, type PublishedSnapshot } from '@/shell/LabBrowser';
+import { TransportBar } from '@/shell/TransportBar';
+import { ParamPanel } from '@/shell/ParamPanel';
+import { StageHost } from '@/shell/StageHost';
+import { Drawer } from '@/shell/Drawer';
+
+const PUBLISH_KEY = 'soundbook.published.v1';
+
+function loadPublished(): PublishedSnapshot[] {
+  try {
+    const raw = localStorage.getItem(PUBLISH_KEY);
+    const parsed = raw ? (JSON.parse(raw) as PublishedSnapshot[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function Shell(): JSX.Element {
+  const s = useSession();
+  const { toast } = useToast();
+
+  const [locked, setLocked] = useState<ReadonlySet<string>>(new Set());
+  const [morph, setMorph] = useState(0);
+  const [inspected, setInspected] = useState<NoteEvent | null>(null);
+  const [drawerTab, setDrawerTab] = useState('events');
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [published, setPublished] = useState<PublishedSnapshot[]>(loadPublished);
+  const [exporting, setExporting] = useState(false);
+  const [chrome, setChrome] = useState<'dark' | 'light'>('dark');
+  const [statusTick, setStatusTick] = useState(0);
+
+  /* What the ear gets: A, or the A→B blend while morphing. Labs may
+     resolve the blend themselves (e.g. averaging waveforms) and report
+     which keys have no single truthful value. */
+  const { params: effectiveParams, blended: blendedKeys } = useMemo(() => {
+    if (!(morph > 0 && s.session.b)) return { params: s.session.params, blended: [] as string[] };
+    if (s.lab.morph) return s.lab.morph(s.session.params, s.session.b, morph);
+    return { params: morphParams(s.lab.params, s.session.params, s.session.b, morph), blended: [] as string[] };
+  }, [morph, s.session.params, s.session.b, s.lab]);
+
+  const audio = useAudio(s.lab, effectiveParams, s.session.seed, s.session.tempo);
+
+  /* Coarse clock for the status bar readouts. */
+  useEffect(() => {
+    const timer = setInterval(() => setStatusTick((t) => t + 1), 250);
+    return () => clearInterval(timer);
+  }, []);
+  void statusTick;
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-chrome', chrome);
+  }, [chrome]);
+
+  /* Lab switch: clear inspection, morph, locks (schemas differ). */
+  useEffect(() => {
+    setInspected(null);
+    setMorph(0);
+    setLocked(new Set());
+  }, [s.lab.id]);
+
+  const onInspect = useCallback((event: NoteEvent): void => {
+    setInspected(event);
+    setDrawerTab('provenance');
+    setDrawerOpen(true);
+  }, []);
+
+  const onToggleLock = useCallback((key: string): void => {
+    setLocked((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const onCopyLink = useCallback((): void => {
+    void s.copyLink().then((url) => {
+      toast({ title: 'LINK COPIED', description: `${url.length} chars — the URL is the document.` });
+    });
+  }, [s, toast]);
+
+  const onPublish = useCallback((): void => {
+    void s.copyLink().then((url) => {
+      const payload = url.split('#')[1] ?? '';
+      const stamp = hash32(payload).toString(16).padStart(8, '0').slice(0, 6);
+      const snapshot: PublishedSnapshot = {
+        name: `${s.lab.title} #${stamp}`,
+        payload,
+        at: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      };
+      setPublished((prev) => {
+        if (prev.some((p) => p.payload === payload)) return prev;
+        const next = [snapshot, ...prev].slice(0, 30);
+        localStorage.setItem(PUBLISH_KEY, JSON.stringify(next));
+        return next;
+      });
+      toast({
+        title: 'SNAPSHOT PUBLISHED',
+        description: `${snapshot.name} — content-addressed, immutable, on your local shelf. URL copied.`,
+      });
+    });
+  }, [s, toast]);
+
+  const onOpenSnapshot = useCallback((snap: PublishedSnapshot): void => {
+    window.location.hash = snap.payload;
+  }, []);
+
+  const onDeleteSnapshot = useCallback((snap: PublishedSnapshot): void => {
+    setPublished((prev) => {
+      const next = prev.filter((p) => p.payload !== snap.payload);
+      localStorage.setItem(PUBLISH_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const onExport = useCallback((): void => {
+    setExporting(true);
+    void audio
+      .exportWav(4)
+      .then((blob) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${s.lab.id}-seed${s.session.seed}.wav`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast({ title: 'WAV EXPORTED', description: '4 cycles rendered offline, same events as live.' });
+      })
+      .catch((error: unknown) => {
+        toast({ title: 'EXPORT FAILED', description: String(error), variant: 'danger' });
+      })
+      .finally(() => setExporting(false));
+  }, [audio, s.lab.id, s.session.seed, toast]);
+
+  const onApplyMorph = useCallback((): void => {
+    if (morph > 0 && s.session.b) {
+      /* Commit exactly what was being heard — via the lab's own morph
+         resolution when it has one. Blended discrete states land as real
+         params (e.g. wave/waveB/blend), so the result stays serializable. */
+      const resolved = s.lab.morph
+        ? s.lab.morph(s.session.params, s.session.b, morph).params
+        : morphParams(s.lab.params, s.session.params, s.session.b, morph);
+      s.setParams(resolved);
+      setMorph(0);
+      toast({ title: 'MORPH APPLIED', description: 'The blend is now A.' });
+    }
+  }, [morph, s, toast]);
+
+  /* Current-cycle events for the drawer table (coarse clock is fine). */
+  const beatNow = audio.getBeat();
+  const cycleBeats = s.lab.cycleBeats(effectiveParams);
+  const cycleIndex = Math.max(0, Math.floor(beatNow / cycleBeats));
+  const cycleEvents = useMemo(
+    () =>
+      s.lab.events({
+        params: effectiveParams,
+        seed: s.session.seed,
+        range: { from: cycleIndex * cycleBeats, to: (cycleIndex + 1) * cycleBeats },
+      }),
+    [s.lab, effectiveParams, s.session.seed, cycleIndex, cycleBeats],
+  );
+
+  const bar = Math.floor(beatNow / 4) + 1;
+  const beatInBar = Math.floor(beatNow % 4) + 1;
+
+  return (
+    <div className="sb-shell">
+      <header className="sb-header bevel">
+        <span className="sb-header__logo">◆ SOUNDBOOK</span>
+        <span className="sb-header__lab">{s.lab.title.toUpperCase()}</span>
+        <span className="sb-header__question">{s.lab.question}</span>
+        <span className="sb-header__spacer" />
+        <IconButton
+          icon="eye"
+          label="Toggle chrome variant"
+          onClick={() => setChrome((c) => (c === 'dark' ? 'light' : 'dark'))}
+        />
+      </header>
+
+      <TransportBar
+        playing={audio.playing}
+        onPlay={audio.play}
+        onStop={audio.stop}
+        onStep={audio.step}
+        onRewind={audio.rewind}
+        tempo={s.session.tempo}
+        onTempo={s.setTempo}
+        seed={s.session.seed}
+        onSeed={s.setSeed}
+        onReseed={s.reseed}
+        onRandomize={() => s.randomize(locked)}
+        canUndo={s.canUndo}
+        canRedo={s.canRedo}
+        onUndo={s.undo}
+        onRedo={s.redo}
+        hasB={s.session.b !== null}
+        morph={morph}
+        onMorph={setMorph}
+        onSetB={() => {
+          s.setB({ ...s.session.params });
+          toast({ title: 'B STORED', description: 'Current parameters parked as morph target.' });
+        }}
+        onSwapAB={s.swapAB}
+        onApplyMorph={onApplyMorph}
+        onCopyLink={onCopyLink}
+        onPublish={onPublish}
+        onExport={onExport}
+        exporting={exporting}
+      />
+
+      <div className="sb-body">
+        <SplitPane defaultSize={230} minSize={170} maxSize={400} label="Lab browser">
+          <LabBrowser
+            selectedId={s.lab.id}
+            onSelect={(id) => {
+              audio.stop();
+              s.selectLab(id);
+            }}
+            published={published}
+            onOpenSnapshot={onOpenSnapshot}
+            onDeleteSnapshot={onDeleteSnapshot}
+          />
+          <div className="sb-main">
+            <div className="sb-workbench">
+              <StageHost
+                lab={s.lab}
+                params={effectiveParams}
+                seed={s.session.seed}
+                playing={audio.playing}
+                getBeat={audio.getBeat}
+                analyser={audio.analyser}
+                recentRef={audio.recentRef}
+                onInspect={onInspect}
+              />
+              <ParamPanel
+                specs={s.lab.params}
+                values={effectiveParams}
+                locked={locked}
+                onChange={s.setParam}
+                onToggleLock={onToggleLock}
+                morphing={morph > 0}
+                blendedKeys={blendedKeys}
+              />
+            </div>
+            {drawerOpen && (
+              <Drawer
+                lab={s.lab}
+                session={s.session}
+                events={cycleEvents}
+                inspected={inspected}
+                onInspect={onInspect}
+                onLoadStory={(story) => {
+                  s.loadStory(story);
+                  toast({ title: `STORY: ${story.name.toUpperCase()}`, description: story.note });
+                }}
+                diagnostics={audio.diagnostics}
+                urlPayload={s.urlPayload}
+                tab={drawerTab}
+                onTab={setDrawerTab}
+              />
+            )}
+          </div>
+        </SplitPane>
+      </div>
+
+      <StatusBar className="sb-status">
+        <LED tone={audio.playing ? 'active' : 'idle'} />
+        <Readout label="TRANSPORT">{audio.playing ? 'PLAYING' : 'HOLD'}</Readout>
+        <Readout label="POS">
+          {bar}.{beatInBar}
+        </Readout>
+        <Readout label="TEMPO">{s.session.tempo} BPM</Readout>
+        <Readout label="SEED" variant="accent">
+          {s.session.seed}
+        </Readout>
+        <Readout label="CYCLE">{cycleBeats} beats</Readout>
+        <Readout grow variant="dim">
+          {s.lab.family.toUpperCase()} · v{s.lab.version} · {cycleEvents.length} events/cycle
+        </Readout>
+        <button
+          type="button"
+          className="sb-status__drawer"
+          onClick={() => setDrawerOpen((open) => !open)}
+        >
+          {drawerOpen ? 'HIDE DRAWER' : 'SHOW DRAWER'}
+        </button>
+      </StatusBar>
+    </div>
+  );
+}

@@ -1,0 +1,77 @@
+/*
+ * The left-hand tool rail.
+ *
+ * Chunky squares in groups, separated by grooves. The tools are real buttons —
+ * the bevel is a border, not a role — and the pressed state is the same bevel
+ * flip every other control in the system uses, plus amber ink so an armed tool
+ * is legible at a glance across the width of the screen.
+ */
+
+.sc-toolbox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background: var(--face);
+  border-right: 2px solid var(--edge-dark);
+  user-select: none;
+}
+
+.sc-toolbox__group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* The groove from the shared `.rule` recipe, stated here so the rail carries
+   its own separators rather than depending on a utility class. */
+.sc-toolbox__rule {
+  height: 2px;
+  border-top: 1px solid var(--edge-dark);
+  border-bottom: 1px solid var(--edge-light);
+  margin: 3px 0;
+}
+
+.sc-tool {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--edge-light) var(--edge-dark) var(--edge-dark) var(--edge-light);
+  background: var(--face-raised);
+  color: var(--ink);
+}
+
+.sc-tool:hover:not(:disabled) {
+  background: var(--face);
+}
+
+.sc-tool:active:not(:disabled),
+.sc-tool[aria-pressed='true'] {
+  border-color: var(--edge-dark) var(--edge-light) var(--edge-light) var(--edge-dark);
+  background: var(--face-sunken);
+}
+
+.sc-tool[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.sc-tool:disabled {
+  color: var(--ink-disabled);
+  cursor: default;
+}
+
+.sc-tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sc-tool__glyph {
+  display: block;
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}

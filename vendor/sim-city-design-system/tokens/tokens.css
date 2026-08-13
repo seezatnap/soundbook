@@ -1,0 +1,93 @@
+/*
+ * Chrome tokens, in the idiom of a 1993 city simulator.
+ *
+ * The whole visual system is three ideas applied without exception:
+ *
+ *  1. Depth is drawn, not blurred. Every raised surface is a flat mid-tone face
+ *     with a 2px light edge on the top and left and a 2px dark edge on the
+ *     bottom and right; every sunken one is the same trick inverted. There are
+ *     no shadows, no rounded corners and no smooth gradients anywhere.
+ *  2. Texture is dithered. Where a gradient would normally go there is a
+ *     hard-stop repeating gradient at 1-2px, which is what a 256-colour display
+ *     did and what a pixel map deserves to sit inside.
+ *  3. Type is small, monospaced and unhinted-looking, set in whole pixels.
+ *     Nothing is fetched: the stack is whatever the machine already has.
+ *
+ * Both chrome variants are declared here and selected by `data-chrome` on the
+ * root element.
+ */
+
+:root {
+  --mono: ui-monospace, "SF Mono", "Menlo", "Consolas", "DejaVu Sans Mono", monospace;
+
+  /* Chrome: dark variant (default). Muted teal-greys with an amber accent. */
+  --face: #3c4a46;
+  --face-raised: #485652;
+  --face-sunken: #2a3331;
+  --face-deep: #1d2523;
+  --edge-light: #71857e;
+  --edge-dark: #171d1c;
+  --ink: #e3ede8;
+  --ink-dim: #9db0a8;
+  --ink-disabled: #6c7c76;
+  --ink-invert: #131a18;
+  --accent: #f0a830;
+  --accent-ink: #1b1305;
+  --accent-2: #5ad2c0;
+  --ok: #8ecb56;
+  --warn: #e8b53a;
+  --danger: #e0533a;
+
+  /* Map surface. Kept for map-flavoured components (minimap, legends). */
+  --map-out: #101517;
+  --map-void: #1a2325;
+  --map-void-dither: #202b2d;
+  --map-grid: #3b4a48;
+  --map-grid-strong: #7d948d;
+  --map-empty: #45564f;
+  --map-queued: #f0a830;
+  --map-generating: #5ad2c0;
+  --map-failed: #e0533a;
+  /* The drag marquee. Deliberately none of the three status colours: a
+     selection is a gesture in progress, not a state the ground is in. */
+  --map-select: #e8f2ec;
+  --map-label: #e3ede8;
+  --map-label-shadow: #0b1112;
+
+  color-scheme: dark;
+}
+
+:root[data-chrome="light"] {
+  --face: #b9c0ac;
+  --face-raised: #c8ceba;
+  --face-sunken: #a6ad9a;
+  --face-deep: #949b88;
+  --edge-light: #eef2e4;
+  --edge-dark: #666d5d;
+  --ink: #131b16;
+  --ink-dim: #454e46;
+  --ink-disabled: #7b8378;
+  --ink-invert: #f2f5ec;
+  --accent: #d2801a;
+  --accent-ink: #1a1204;
+  --accent-2: #1f8f7f;
+  --ok: #3f7a1f;
+  --warn: #a97a10;
+  --danger: #a8331d;
+
+  /* Lighter than the chrome, so the map still reads as a separate surface. */
+  --map-out: #7f8676;
+  --map-void: #c9cebb;
+  --map-void-dither: #c1c7b2;
+  --map-grid: #9aa28d;
+  --map-grid-strong: #4a5344;
+  --map-empty: #8d9682;
+  --map-queued: #b96f0d;
+  --map-generating: #14776a;
+  --map-failed: #97250f;
+  --map-select: #1a2216;
+  --map-label: #12180f;
+  --map-label-shadow: #d8dccb;
+
+  color-scheme: light;
+}
