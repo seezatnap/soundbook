@@ -1,5 +1,7 @@
 # SOUNDBOOK
 
+<img width="1710" height="897" alt="Screenshot 2026-08-13 at 4 46 18 PM" src="https://github.com/user-attachments/assets/65adfb07-b96e-4c42-9690-f51c2098061e" />
+
 Storybook for experimental music: an instrument workshop and executable music
 notebook. Each **lab** renders one musical idea live, explains why every event
 happened, and serializes its entire state into a shareable URL. Built on the
