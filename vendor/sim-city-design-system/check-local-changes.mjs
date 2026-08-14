@@ -106,7 +106,9 @@ const claimedButPristine = [];
 
 for (const [rel, hash] of manifest) {
   if (!present.has(rel)) {
-    (claimedDeleted.has(rel) ? deletedClaimed : deletedUnclaimed).push(rel);
+    if (claimedDeleted.has(rel)) deletedClaimed.push(rel);
+    else if (stampedClaimed.has(rel)) stampedPending.push(rel);
+    else deletedUnclaimed.push(rel);
   } else if (present.get(rel) !== hash) {
     if (claimed.has(rel)) modifiedClaimed.push(rel);
     else if (stampedClaimed.has(rel)) stampedPending.push(rel);
@@ -114,7 +116,11 @@ for (const [rel, hash] of manifest) {
   }
 }
 for (const rel of present.keys()) {
-  if (!manifest.has(rel)) (claimed.has(rel) ? addedClaimed : addedUnclaimed).push(rel);
+  if (!manifest.has(rel)) {
+    if (claimed.has(rel)) addedClaimed.push(rel);
+    else if (stampedClaimed.has(rel)) stampedPending.push(rel);
+    else addedUnclaimed.push(rel);
+  }
 }
 for (const rel of claimed) {
   if (manifest.has(rel) && present.has(rel) && present.get(rel) === manifest.get(rel)) {
@@ -131,7 +137,7 @@ say('Modified, documented:', modifiedClaimed);
 say('Added, documented:', addedClaimed);
 say('Deleted, documented:', deletedClaimed);
 say('NOTE — claimed by a [LOCAL] entry but identical to the manifest (stale claim, or an edit lost in an update):', claimedButPristine);
-say('NOTE — modified, claimed only by a stamped entry (folded upstream; update to the new tarball to clear):', stampedPending);
+say('NOTE — modified/added/deleted, claimed only by a stamped entry (folded upstream; update to the new tarball to clear):', stampedPending);
 say('ERROR — modified without a changelog entry:', modifiedUnclaimed);
 say('ERROR — added without a changelog entry:', addedUnclaimed);
 say('ERROR — deleted without a changelog entry:', deletedUnclaimed);

@@ -70,14 +70,17 @@ both):
 
 ## Icons
 
-`src/icons/PixelIcon.tsx`: 16×16 character-grid glyphs rendered as crisp SVG
-rects. Icons are strictly monochrome — `#` and `o` both render currentColor
-(`o` survives in grids as an annotation only), `.` = transparent. Use only names in
-the registry (`core.ts` + `extended.ts`). If your component needs a glyph that
-does not exist, do NOT edit the shared registry: define a private 16×16 grid
-constant inside your component folder rendering through the same technique,
-and note it in your final report so it can be promoted later. Render at
-multiples of 16px.
+`src/icons/PixelIcon.tsx`, backed by the vendored @gravity-ui/icons set in
+`src/icons/gravity/` (MIT — see `LICENSE` and `VENDORED.md` there; the svgs
+are byte-identical to the upstream tag and are never edited). Each name in
+the fixed vocabulary maps onto one Gravity SVG, inlined at build time via a
+Vite `?raw` import — no runtime fetches, no icon fonts. Icons are strictly
+monochrome: every path carries `fill="currentColor"`, so glyphs follow
+pressed and disabled states and never fight the chrome. Use only names in
+the `ICONS` registry inside `PixelIcon.tsx`. If your component needs a glyph
+that does not exist, pick the closest SVG in `icons/gravity/svgs/` and add
+one `name: import` line to the registry — never edit an SVG, and never
+inline SVG markup in a component. Render at multiples of 16px.
 
 ## Behaviour and accessibility (non-negotiable)
 
