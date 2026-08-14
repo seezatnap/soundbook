@@ -33,7 +33,6 @@ import { cx } from '../../lib/cx';
 import { PixelIcon, type PixelIconName } from '../../icons/PixelIcon';
 import { Portal, useAnchorPosition } from '../../lib/overlays';
 import { useControllableState } from '../../lib/useControllableState';
-import { RadioBlock } from './glyphs';
 import './Menu.css';
 
 /* --------------------------------------------------------------------------
@@ -378,7 +377,7 @@ export function MenuRadioItem({ value, children, hint, disabled, onSelect }: Men
     <MenuRow
       role="menuitemradio"
       checked={checked}
-      lead={checked ? <RadioBlock size={16} /> : null}
+      lead={checked ? <PixelIcon name="square-fill" size={16} /> : null}
       label={children}
       hint={hint}
       disabled={disabled}

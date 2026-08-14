@@ -9,7 +9,6 @@ import { type HTMLAttributes, type JSX } from 'react';
 import { cx } from '../../lib/cx';
 import { PixelIcon, type PixelIconName } from '../../icons/PixelIcon';
 import { useControllableState } from '../../lib/useControllableState';
-import { PaginationGlyph, type PaginationGlyphName } from './glyphs';
 import './Pagination.css';
 
 const numberFormat = new Intl.NumberFormat('en-US');
@@ -63,8 +62,7 @@ export function Pagination({
     label: string,
     target: number,
     navDisabled: boolean,
-    glyph: PixelIconName | null,
-    privateGlyph: PaginationGlyphName | null,
+    glyph: PixelIconName,
   ) => (
     <li className="sc-pagination__item">
       <button
@@ -74,8 +72,7 @@ export function Pagination({
         disabled={disabled || navDisabled}
         onClick={() => goTo(target)}
       >
-        {glyph ? <PixelIcon name={glyph} size={16} /> : null}
-        {privateGlyph ? <PaginationGlyph name={privateGlyph} /> : null}
+        <PixelIcon name={glyph} size={16} />
       </button>
     </li>
   );
@@ -83,8 +80,8 @@ export function Pagination({
   return (
     <nav aria-label={ariaLabel} className={cx('sc-pagination', className)} {...rest}>
       <ol className="sc-pagination__list">
-        {navButton('First page', 1, current <= 1, null, 'chevrons-left')}
-        {navButton('Previous page', current - 1, current <= 1, 'chevron-left', null)}
+        {navButton('First page', 1, current <= 1, 'chevrons-left')}
+        {navButton('Previous page', current - 1, current <= 1, 'chevron-left')}
         {pageItems(current, count, siblingCount).map((item) =>
           item < 0 ? (
             <li key={item === LEAD_GAP ? 'lead-gap' : 'tail-gap'} className="sc-pagination__item">
@@ -107,8 +104,8 @@ export function Pagination({
             </li>
           ),
         )}
-        {navButton('Next page', current + 1, current >= count, 'chevron-right', null)}
-        {navButton('Last page', count, current >= count, null, 'chevrons-right')}
+        {navButton('Next page', current + 1, current >= count, 'chevron-right')}
+        {navButton('Last page', count, current >= count, 'chevrons-right')}
       </ol>
     </nav>
   );

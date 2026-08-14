@@ -82,10 +82,10 @@ export function TransportBar(props: TransportBarProps): JSX.Element {
         className="sb-transport__seed"
       />
       <Tooltip content="Draw a fresh seed">
-        <IconButton icon="refresh" label="Reseed" onClick={props.onReseed} />
+        <IconButton icon="dice" label="Reseed" onClick={props.onReseed} />
       </Tooltip>
       <Tooltip content="Randomize unlocked parameters">
-        <IconButton icon="star" label="Randomize parameters" onClick={props.onRandomize} />
+        <IconButton icon="shuffle" label="Randomize parameters" onClick={props.onRandomize} />
       </Tooltip>
 
       <ToolbarSeparator />
