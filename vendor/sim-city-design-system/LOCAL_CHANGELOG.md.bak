@@ -10,7 +10,7 @@ by the upstream maintainer; leave them in place as history.
 
 <!-- entries below -->
 
-## [UPSTREAMED v1.1.0] 2026-08-14 gravity-icons-iconset
+## [LOCAL] 2026-08-14 gravity-icons-iconset
 Files:
 - icons/PixelIcon.tsx
 - components/Pagination/Pagination.tsx

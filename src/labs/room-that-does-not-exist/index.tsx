@@ -67,8 +67,11 @@ function irKey(params: ParamValues, seed: number, sampleRate: number): string {
   return [seed, params.size, params.decay, params.damping, params.impossibility, sampleRate].join('|');
 }
 
-/** Deterministic impossible-room impulse response. */
-function buildIr(ctx: BaseAudioContext, params: ParamValues, seed: number): AudioBuffer {
+/**
+ * Deterministic impossible-room impulse response. Exported so a composition
+ * can stand other instruments in the same room this lab's sparks excite.
+ */
+export function buildIr(ctx: BaseAudioContext, params: ParamValues, seed: number): AudioBuffer {
   const decay = params.decay as number;
   const size = params.size as number;
   const damping = params.damping as number;

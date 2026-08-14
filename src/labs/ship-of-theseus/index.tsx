@@ -14,6 +14,11 @@ import { rngFor } from '@/sdk/prng';
 import { SCALES, scaleNote } from '@/labs/shared/music';
 import { midiName } from '@/sdk/events';
 import { useStageCanvas } from '@/labs/shared/stage';
+import { buildIr } from '@/labs/room-that-does-not-exist';
+
+/* The harbor the ship floats in: a plausible stone basin (impossibility 0),
+   its reflections seeded like everything else aboard. */
+const HARBOR = { size: 22, decay: 2.6, damping: 0.55, impossibility: 0 };
 
 const STEP_BEATS = 0.5;
 
@@ -129,8 +134,28 @@ function labEvents(params: ParamValues, seed: number, from: number, to: number):
   return events;
 }
 
-function makeInstrument(engine: EngineFacade, _initial: ParamValues): Instrument {
+function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number): Instrument {
   const ctx = engine.ctx;
+
+  /* Dry/wet split into the seeded harbor, shared by every plank voice. */
+  const input = ctx.createGain();
+  const dry = ctx.createGain();
+  const wetGain = ctx.createGain();
+  const harbor = ctx.createConvolver();
+  harbor.buffer = buildIr(ctx, HARBOR, seed);
+  input.connect(dry);
+  dry.connect(engine.out);
+  input.connect(harbor);
+  harbor.connect(wetGain);
+  wetGain.connect(engine.out);
+
+  const applyWet = (params: ParamValues): void => {
+    const wet = params.wet as number;
+    dry.gain.value = Math.cos((wet * Math.PI) / 2) * 0.9;
+    wetGain.gain.value = Math.sin((wet * Math.PI) / 2) * 1.1;
+  };
+  applyWet(initial);
+
   return {
     trigger(event, when, _durSec, params) {
       const release = engine.acquireVoice();
@@ -159,7 +184,7 @@ function makeInstrument(engine: EngineFacade, _initial: ParamValues): Instrument
       sineGain.connect(lp);
       sawGain.connect(lp);
       lp.connect(env);
-      env.connect(engine.out);
+      env.connect(input);
       let pending = 2;
       const done = (): void => {
         pending -= 1;
@@ -175,8 +200,15 @@ function makeInstrument(engine: EngineFacade, _initial: ParamValues): Instrument
       sine.stop(when + 0.7);
       saw.stop(when + 0.7);
     },
-    update() {},
-    dispose() {},
+    update(params) {
+      applyWet(params);
+    },
+    dispose() {
+      input.disconnect();
+      dry.disconnect();
+      harbor.disconnect();
+      wetGain.disconnect();
+    },
   };
 }
 
@@ -308,7 +340,7 @@ function Stage({ params, seed, beat, onInspect, events }: StageProps): JSX.Eleme
 
 export const shipOfTheseus = defineLab({
   id: 'ship-of-theseus',
-  version: 1,
+  version: 2,
   title: 'Ship of Theseus',
   family: 'quixotic',
   question: 'If every note is replaced, one cycle at a time, when does the melody stop being itself?',
@@ -346,6 +378,16 @@ export const shipOfTheseus = defineLab({
       default: true,
       hint: 'The more planks replaced, the harsher the tone.',
     },
+    {
+      kind: 'number',
+      key: 'wet',
+      label: 'Harbor wet',
+      min: 0,
+      max: 1,
+      step: 0.01,
+      default: 0.3,
+      hint: 'How much the harbor answers back — a plausible stone basin, seeded like the hull.',
+    },
   ],
   cycleBeats: (params) => (params.length as number) * STEP_BEATS,
   events: ({ params, seed, range }) => labEvents(params, seed, range.from, range.to),
@@ -380,6 +422,9 @@ would have reached by listening the whole way — the paradox is reproducible.
 Two philosophies are on offer. With timbre coupled, the voice of the ship
 wears with its planks — by full replacement it is audibly another
 instrument. Uncoupled, the voice never changes and only the melody drifts.
+The harbor-wet knob moors the ship in a plausible stone basin — the same
+seeded impulse-response arithmetic as A Room That Does Not Exist, held at
+impossibility zero, because this paradox is confusing enough on dry math.
 Click a plank for its papers: original, or replaced at cycle so-and-so,
 by rule such-and-such. The ledger keeps what Plutarch couldn't.`,
 });

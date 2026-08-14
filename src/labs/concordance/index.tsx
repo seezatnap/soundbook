@@ -31,7 +31,7 @@ import {
 } from '@/labs/shared/harmonize';
 import { useStageCanvas, type StagePalette } from '@/labs/shared/stage';
 import { oscillatorMicroscope } from '@/labs/oscillator-microscope';
-import { roomThatDoesNotExist } from '@/labs/room-that-does-not-exist';
+import { buildIr, roomThatDoesNotExist } from '@/labs/room-that-does-not-exist';
 import { polymeterLoom } from '@/labs/polymeter-loom';
 
 /* ------------------------------------------------- the source documents --
@@ -359,24 +359,44 @@ function pieceEvents(params: ParamValues, seed: number, from: number, to: number
 /*
  * One sub-instrument per track, each built by its own lab's factory against
  * a facade whose `out` is that track's trim gain. The score's dynamics live
- * in the events; the level params are engine-side mix trims.
+ * in the events; the level and wet params are engine-side mix trims. The
+ * loom gets a send into the very room the sparks excite — same impulse
+ * response, same seed — so the two wets are doors into one space.
  */
 function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument {
   const ctx = engine.ctx;
   const gains = new Map<string, GainNode>();
   const inner = new Map<string, Instrument>();
+  const sendNodes: AudioNode[] = [];
+  let loomDry: GainNode | null = null;
+  let loomWet: GainNode | null = null;
 
   for (const track of TRACKS) {
     const gain = ctx.createGain();
     gain.connect(engine.out);
     gains.set(track.id, gain);
+    let out: AudioNode = gain;
+    if (track.id === 'stars') {
+      const input = ctx.createGain();
+      loomDry = ctx.createGain();
+      loomWet = ctx.createGain();
+      const room = ctx.createConvolver();
+      room.buffer = buildIr(ctx, SPARKS_PARAMS, SPARKS_SEED);
+      input.connect(loomDry);
+      loomDry.connect(gain);
+      input.connect(room);
+      room.connect(loomWet);
+      loomWet.connect(gain);
+      sendNodes.push(input, room, loomDry, loomWet);
+      out = input;
+    }
     const facade: EngineFacade = {
       ctx,
-      out: gain,
+      out,
       acquireVoice: () => engine.acquireVoice(),
     };
     const buildParams =
-      track.id === 'sparks' ? { ...SPARKS_PARAMS, wet: initial.roomWet } : track.params;
+      track.id === 'sparks' ? { ...SPARKS_PARAMS, wet: initial.sparksWet } : track.params;
     inner.set(track.id, track.lab.makeInstrument(facade, buildParams, track.seed));
   }
 
@@ -385,7 +405,13 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument 
       const level = params[`${track.id}Level`] as number;
       gains.get(track.id)!.gain.value = level * level; // audio taper
     }
-    inner.get('sparks')?.update({ ...SPARKS_PARAMS, wet: params.roomWet });
+    inner.get('sparks')?.update({ ...SPARKS_PARAMS, wet: params.sparksWet });
+    /* Same equal-power law the room lab uses for its own wet knob. */
+    const wet = params.starsWet as number;
+    if (loomDry && loomWet) {
+      loomDry.gain.value = Math.cos((wet * Math.PI) / 2) * 0.9;
+      loomWet.gain.value = Math.sin((wet * Math.PI) / 2) * 1.1;
+    }
   };
   applyMix(initial);
 
@@ -405,6 +431,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument 
     },
     dispose() {
       inner.forEach((instrument) => instrument.dispose());
+      sendNodes.forEach((node) => node.disconnect());
       gains.forEach((gain) => gain.disconnect());
     },
   };
@@ -640,7 +667,7 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
 
 export const concordance = defineLab({
   id: 'concordance',
-  version: 2,
+  version: 3,
   title: 'Concordance No. 1',
   family: 'composition',
   question: 'Can three documents that never met agree on one key without giving up their character?',
@@ -705,13 +732,23 @@ export const concordance = defineLab({
     },
     {
       kind: 'number',
-      key: 'roomWet',
-      label: 'Room wet',
+      key: 'sparksWet',
+      label: 'Sparks wet',
       min: 0,
       max: 1,
       step: 0.01,
       default: 0.91,
-      hint: 'Wet mix of the impossible room, exactly as published at 0.91.',
+      hint: 'Wet mix of the impossible room around the sparks, exactly as published at 0.91.',
+    },
+    {
+      kind: 'number',
+      key: 'starsWet',
+      label: 'Stars wet',
+      min: 0,
+      max: 1,
+      step: 0.01,
+      default: 0.3,
+      hint: 'Sends the loom into the same impossible room the sparks excite. Its document is dry; 0 restores that.',
     },
   ],
   cycleBeats: () => CYCLE_BEATS,
@@ -767,7 +804,10 @@ harmonizer audibly negotiates every step back onto the consensus. The
 harmonize knob decides how much of that negotiation is applied: at 0 the
 excursion arrives raw, at 1 it is absorbed into the key, in between it is
 genuinely microtonal. The stars-shift knob hands you the same lever, ±2
-octaves of it, on top of whatever the score is doing.
+octaves of it, on top of whatever the score is doing. The two wet knobs are
+doors into one space: sparks-wet is the room document's own mix, published
+at 0.91, and stars-wet lowers the loom into the identical impulse response,
+so the two instruments audibly share the same impossible geometry.
 
 The composition's own seed touches one thing only: a small per-onset
 performance wobble in the dynamics. Everything else you hear is either one
