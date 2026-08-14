@@ -48,12 +48,24 @@ export function Shell(): JSX.Element {
 
   /* What the ear gets: A, or the A→B blend while morphing. Labs may
      resolve the blend themselves (e.g. averaging waveforms) and report
-     which keys have no single truthful value. */
+     which keys have no single truthful value. Locked params sit the morph
+     out entirely: they hold A's value through the scrub and through APPLY,
+     even against a lab's own morph resolution. */
   const { params: effectiveParams, blended: blendedKeys } = useMemo(() => {
     if (!(morph > 0 && s.session.b)) return { params: s.session.params, blended: [] as string[] };
-    if (s.lab.morph) return s.lab.morph(s.session.params, s.session.b, morph);
-    return { params: morphParams(s.lab.params, s.session.params, s.session.b, morph), blended: [] as string[] };
-  }, [morph, s.session.params, s.session.b, s.lab]);
+    const resolved = s.lab.morph
+      ? s.lab.morph(s.session.params, s.session.b, morph)
+      : {
+          params: morphParams(s.lab.params, s.session.params, s.session.b, morph),
+          blended: [] as string[],
+        };
+    if (locked.size === 0) return resolved;
+    const params = { ...resolved.params };
+    for (const key of locked) {
+      if (key in s.session.params) params[key] = s.session.params[key];
+    }
+    return { params, blended: resolved.blended.filter((key) => !locked.has(key)) };
+  }, [morph, s.session.params, s.session.b, s.lab, locked]);
 
   const audio = useAudio(s.lab, effectiveParams, s.session.seed, s.session.tempo);
 
@@ -160,17 +172,15 @@ export function Shell(): JSX.Element {
 
   const onApplyMorph = useCallback((): void => {
     if (morph > 0 && s.session.b) {
-      /* Commit exactly what was being heard — via the lab's own morph
-         resolution when it has one. Blended discrete states land as real
-         params (e.g. wave/waveB/blend), so the result stays serializable. */
-      const resolved = s.lab.morph
-        ? s.lab.morph(s.session.params, s.session.b, morph).params
-        : morphParams(s.lab.params, s.session.params, s.session.b, morph);
-      s.setParams(resolved);
+      /* Commit exactly what was being heard — effectiveParams already holds
+         the lab's own morph resolution with locked params pinned to A.
+         Blended discrete states land as real params (e.g. wave/waveB/blend),
+         so the result stays serializable. */
+      s.setParams(effectiveParams);
       setMorph(0);
       toast({ title: 'MORPH APPLIED', description: 'The blend is now A.' });
     }
-  }, [morph, s, toast]);
+  }, [morph, s, effectiveParams, toast]);
 
   /* Current-cycle events for the drawer table (coarse clock is fine). */
   const beatNow = audio.getBeat();

@@ -114,7 +114,7 @@ function ParamRow({
       <div className="sb-params__tools">
         <IconButton
           icon={isLocked ? 'lock' : 'unlock'}
-          label={isLocked ? `Unlock ${spec.label}` : `Lock ${spec.label} against randomize`}
+          label={isLocked ? `Unlock ${spec.label}` : `Lock ${spec.label} against randomize and morph`}
           size="sm"
           variant={isLocked ? 'accent' : 'default'}
           onClick={() => onToggleLock(spec.key)}
