@@ -239,7 +239,11 @@ body {
   gap: 6px;
 }
 
-.sb-params__slider {
+/* Doubled specificity: the vendored .sc-slider { min-width: 160px } loads
+   after app.css and wins the tie otherwise — the slider then refuses to
+   shrink and shoves the exact field over the lock/reset buttons, which
+   swallows their clicks in narrow rows (grouped tabs especially). */
+.sb-params .sb-params__slider {
   flex: 1;
   min-width: 0;
 }
@@ -277,6 +281,9 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* The body already pads itself; the vendored panel padding would double
+     it and starve the rows of 16px they need. */
+  padding: 0;
 }
 
 /* -------------------------------------------------------------- drawer */
