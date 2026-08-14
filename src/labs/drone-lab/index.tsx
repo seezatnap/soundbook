@@ -28,6 +28,7 @@ import {
   retuneFreq,
   type ConsensusKey,
 } from '@/labs/shared/harmonize';
+import { makeSmoothConvolver, type SmoothConvolver } from '@/labs/shared/smooth-convolver';
 import { useStageCanvas, type StagePalette } from '@/labs/shared/stage';
 import { oscillatorMicroscope } from '@/labs/oscillator-microscope';
 import { buildIr, roomThatDoesNotExist } from '@/labs/room-that-does-not-exist';
@@ -372,8 +373,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
   const sendNodes: AudioNode[] = [];
   let loomDry: GainNode | null = null;
   let loomWet: GainNode | null = null;
-  let loomRoom: ConvolverNode | null = null;
-  let loomRoomKey = '';
+  let loomRoom: SmoothConvolver | null = null;
 
   for (const track of TRACKS) {
     const gain = ctx.createGain();
@@ -384,13 +384,15 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       const input = ctx.createGain();
       loomDry = ctx.createGain();
       loomWet = ctx.createGain();
-      loomRoom = ctx.createConvolver();
+      /* Smooth like the sparks' own room: Space edits and A/B scrubs must
+         not cut the loom's tail while the IR is rebuilt. */
+      loomRoom = makeSmoothConvolver(ctx);
       input.connect(loomDry);
       loomDry.connect(gain);
-      input.connect(loomRoom);
-      loomRoom.connect(loomWet);
+      input.connect(loomRoom.input);
+      loomRoom.output.connect(loomWet);
       loomWet.connect(gain);
-      sendNodes.push(input, loomRoom, loomDry, loomWet);
+      sendNodes.push(input, loomDry, loomWet);
       out = input;
     }
     const facade: EngineFacade = {
@@ -420,10 +422,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       space.impossibility,
       ctx.sampleRate,
     ].join('|');
-    if (loomRoom && roomKey !== loomRoomKey) {
-      loomRoom.buffer = buildIr(ctx, space, sparksSeed);
-      loomRoomKey = roomKey;
-    }
+    loomRoom?.set(roomKey, () => buildIr(ctx, space, sparksSeed));
     /* Same equal-power law the room lab uses for its own wet knob. */
     const send = params.loomWet as number;
     if (loomDry && loomWet) {
@@ -449,6 +448,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     },
     dispose() {
       inner.forEach((instrument) => instrument.dispose());
+      loomRoom?.dispose();
       sendNodes.forEach((node) => node.disconnect());
       gains.forEach((gain) => gain.disconnect());
     },

@@ -12,6 +12,7 @@ import type { NoteEvent } from '@/sdk/events';
 import type { ParamValues } from '@/sdk/params';
 import { rngFor } from '@/sdk/prng';
 import { SCALES, scaleNote } from '@/labs/shared/music';
+import { makeSmoothConvolver } from '@/labs/shared/smooth-convolver';
 import { useStageCanvas } from '@/labs/shared/stage';
 
 const CYCLE_BEATS = 8;
@@ -124,21 +125,19 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
   const ctx = engine.ctx;
   const dry = ctx.createGain();
   const wet = ctx.createGain();
-  const convolver = ctx.createConvolver();
+  /* Live room edits (and A/B scrubs interpolating them) must not cut the
+     tail — the sparks are almost entirely tail. The smooth convolver keeps
+     the old room ringing until the knobs settle, then crossfades. */
+  const room = makeSmoothConvolver(ctx);
   const input = ctx.createGain();
   input.connect(dry);
-  input.connect(convolver);
-  convolver.connect(wet);
+  input.connect(room.input);
+  room.output.connect(wet);
   dry.connect(engine.out);
   wet.connect(engine.out);
 
-  let builtFor = '';
   const applyRoom = (params: ParamValues): void => {
-    const key = irKey(params, seed, ctx.sampleRate);
-    if (key !== builtFor) {
-      convolver.buffer = buildIr(ctx, params, seed);
-      builtFor = key;
-    }
+    room.set(irKey(params, seed, ctx.sampleRate), () => buildIr(ctx, params, seed));
     const wetAmt = params.wet as number;
     dry.gain.value = Math.cos((wetAmt * Math.PI) / 2) * 0.9;
     wet.gain.value = Math.sin((wetAmt * Math.PI) / 2) * 1.1;
@@ -189,7 +188,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       input.disconnect();
       dry.disconnect();
       wet.disconnect();
-      convolver.disconnect();
+      room.dispose();
     },
   };
 }

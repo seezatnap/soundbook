@@ -77,9 +77,15 @@ generates everything else. Work through this checklist in order.
 - Subseeds derive from the master seed (`deriveSeed(seed, '<lab>', trackId)`)
   and are never stored or shown.
 - Shared spaces: to stand one layer in another's convolution room, build the
-  same IR (`buildIr(ctx, spaceSlice, spaceSubseed)`) behind a dry/wet pair
-  and rebuild it in `update()` when its inputs change (key-string compare,
-  same as the room lab's `irKey`).
+  same IR (`buildIr(ctx, spaceSlice, spaceSubseed)`) behind a dry/wet pair.
+  Any convolver whose IR can change live MUST go through
+  `makeSmoothConvolver` (`src/labs/shared/smooth-convolver.ts`) — assigning
+  `ConvolverNode.buffer` directly resets the node and cuts the whole tail,
+  so an A/B scrub interpolating room params silences the reverb every tick.
+  The smooth convolver debounces rebuilds until the key settles and
+  crossfades the new room in while the old tail rings out. A convolver whose
+  IR is fixed for the instrument's lifetime (the loom's private chamber) can
+  stay plain.
 
 ## 5. Piece vs. loop
 
