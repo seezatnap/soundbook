@@ -44,12 +44,21 @@ inspectable:
 
 | Family | Lab | Question |
 | --- | --- | --- |
+| Composition | Concordance No. 1 | Can three documents that never met agree on one key without giving up their character? |
 | Instrumentation | Oscillator Microscope | What does a single oscillator actually put in the air? |
 | Instrumentation | Resonant Materials | What makes glass sound like glass and wood like wood? |
 | Pattern | Euclidean Constellation | Why does spreading k pulses evenly over n steps groove? |
 | Pattern | Polymeter Loom | What happens when loops of different lengths share one pulse? |
 | Space | A Room That Does Not Exist | What does an unbuildable geometry sound like? |
 | Quixotic | Ship of Theseus | If every note is replaced, when does the melody stop being itself? |
+
+**Compositions** are labs in the `composition` family: through-composed
+pieces that embed other labs' published states as tracks. Concordance No. 1
+lays three decoded documents onto a 360-beat arc and runs every event
+through a pure autoharmonizer (`src/labs/shared/harmonize.ts`) that elects
+the consensus key requiring the least total retuning, then moves only the
+outliers — timing, rhythm and instruments stay exactly as published. A
+composition sets `pieceBeats` so WAV export renders the whole piece.
 
 Each lab declares a schema (`defineLab`): metadata, 5–8 params, a pure event
 function, an instrument factory, a canvas stage, authored **stories**

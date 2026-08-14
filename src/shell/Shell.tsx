@@ -132,21 +132,31 @@ export function Shell(): JSX.Element {
 
   const onExport = useCallback((): void => {
     setExporting(true);
+    /* Labs loop: render 4 cycles. A through-composed piece renders whole. */
+    const pieceBeats = s.lab.pieceBeats;
+    const cycles = pieceBeats
+      ? Math.max(1, Math.round(pieceBeats / s.lab.cycleBeats(s.session.params)))
+      : 4;
     void audio
-      .exportWav(4)
+      .exportWav(cycles)
       .then((blob) => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `${s.lab.id}-seed${s.session.seed}.wav`;
         a.click();
         URL.revokeObjectURL(a.href);
-        toast({ title: 'WAV EXPORTED', description: '4 cycles rendered offline, same events as live.' });
+        toast({
+          title: 'WAV EXPORTED',
+          description: pieceBeats
+            ? 'Whole piece rendered offline, same events as live.'
+            : '4 cycles rendered offline, same events as live.',
+        });
       })
       .catch((error: unknown) => {
         toast({ title: 'EXPORT FAILED', description: String(error), variant: 'danger' });
       })
       .finally(() => setExporting(false));
-  }, [audio, s.lab.id, s.session.seed, toast]);
+  }, [audio, s.lab, s.session.seed, s.session.params, toast]);
 
   const onApplyMorph = useCallback((): void => {
     if (morph > 0 && s.session.b) {
@@ -247,6 +257,7 @@ export function Shell(): JSX.Element {
                 analyser={audio.analyser}
                 recentRef={audio.recentRef}
                 onInspect={onInspect}
+                onSeek={audio.seek}
               />
               <ParamPanel
                 specs={s.lab.params}

@@ -163,10 +163,16 @@ export function useAudio(
     schedulerRef.current?.step();
   }, [ensureAudio]);
 
-  const seek = useCallback((beat: number): void => {
-    transportRef.current?.seek(beat);
-    schedulerRef.current?.resync();
-  }, []);
+  const seek = useCallback(
+    (beat: number): void => {
+      /* Stage clicks may seek before the first play; build the stack so the
+         playhead actually moves (still silent until play resumes audio). */
+      ensureAudio();
+      transportRef.current?.seek(beat);
+      schedulerRef.current?.resync();
+    },
+    [ensureAudio],
+  );
 
   const rewind = useCallback((): void => {
     seek(0);

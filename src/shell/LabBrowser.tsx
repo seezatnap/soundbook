@@ -25,7 +25,7 @@ interface LabBrowserProps {
   onDeleteSnapshot(snapshot: PublishedSnapshot): void;
 }
 
-const FAMILY_ORDER: LabFamily[] = ['instrumentation', 'pattern', 'space', 'quixotic'];
+const FAMILY_ORDER: LabFamily[] = ['composition', 'instrumentation', 'pattern', 'space', 'quixotic'];
 
 export function LabBrowser({
   selectedId,

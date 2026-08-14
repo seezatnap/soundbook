@@ -10,6 +10,7 @@ import { euclideanConstellation } from '@/labs/euclidean-constellation';
 import { polymeterLoom } from '@/labs/polymeter-loom';
 import { roomThatDoesNotExist } from '@/labs/room-that-does-not-exist';
 import { shipOfTheseus } from '@/labs/ship-of-theseus';
+import { concordance } from '@/labs/concordance';
 
 export const LABS: LabDefinition[] = [
   oscillatorMicroscope,
@@ -18,9 +19,11 @@ export const LABS: LabDefinition[] = [
   polymeterLoom,
   roomThatDoesNotExist,
   shipOfTheseus,
+  concordance,
 ];
 
 export const FAMILY_LABELS: Record<LabFamily, string> = {
+  composition: 'Compositions',
   instrumentation: 'Instrumentation',
   pattern: 'Pattern & Harmony',
   space: 'Space',

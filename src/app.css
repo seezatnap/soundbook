@@ -267,7 +267,11 @@ body {
   min-height: 0;
 }
 
-.sb-drawer__tabs {
+/* Double the specificity: the vendored .sc-tabs { display: block } loads
+   after app.css in the module graph and would otherwise win the tie,
+   collapsing the flex chain — the panel then grows to content height and
+   its overflow: auto never scrolls. */
+.sb-drawer .sb-drawer__tabs {
   display: flex;
   flex-direction: column;
   flex: 1;

@@ -20,6 +20,7 @@ interface StageHostProps {
   analyser: AnalyserNode | null;
   recentRef: React.RefObject<RecentEvent[]>;
   onInspect(event: NoteEvent): void;
+  onSeek(beat: number): void;
 }
 
 export function StageHost({
@@ -31,6 +32,7 @@ export function StageHost({
   analyser,
   recentRef,
   onInspect,
+  onSeek,
 }: StageHostProps): JSX.Element {
   const [beat, setBeat] = useState(0);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -80,6 +82,7 @@ export function StageHost({
         recent={recentRef.current ?? []}
         analyser={analyser}
         onInspect={onInspect}
+        onSeek={onSeek}
         width={size.width}
         height={size.height}
       />

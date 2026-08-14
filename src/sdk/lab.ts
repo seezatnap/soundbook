@@ -67,11 +67,13 @@ export interface StageProps {
   analyser: AnalyserNode | null;
   /** Select an event to inspect its provenance in the drawer. */
   onInspect(event: NoteEvent): void;
+  /** Move the transport playhead to a beat (stage-driven seeking). */
+  onSeek(beat: number): void;
   width: number;
   height: number;
 }
 
-export type LabFamily = 'instrumentation' | 'pattern' | 'space' | 'quixotic';
+export type LabFamily = 'composition' | 'instrumentation' | 'pattern' | 'space' | 'quixotic';
 
 /** What an A/B morph position resolves to. */
 export interface MorphResult {
@@ -94,6 +96,12 @@ export interface LabDefinition {
   params: ParamSpec[];
   /** Beats per visible/looping cycle, given params — drives stage + export. */
   cycleBeats(params: ParamValues): number;
+  /**
+   * Total length of a through-composed piece in beats. Labs loop forever and
+   * omit this; a composition sets it so WAV export renders the whole piece
+   * (its events function returns nothing past this beat).
+   */
+  pieceBeats?: number;
   /** Pure, deterministic events for a beat range. */
   events(ctx: PatternContext): NoteEvent[];
   /**
