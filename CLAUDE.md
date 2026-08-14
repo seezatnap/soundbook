@@ -17,8 +17,11 @@ functions are pure over beat ranges, and one shared AudioContext lives behind
   suite (`npm test`) asserts events over [0,24) equal the union of 0.5-beat
   windows, and that far seeks match long listens. Keep it green.
 - New labs: `defineLab` in `src/labs/<id>/index.tsx`, register in
-  `src/labs/registry.ts`, 5–8 params, ≥2 stories, docs, provenance on every
-  event.
+  `src/labs/registry.ts`, 5–9 params, ≥2 stories, docs, provenance on every
+  event. A console lab that embeds other labs (e.g. DroneLab) may carry more
+  params by declaring `paramGroups` — tabs of 5–9 params each, every key in
+  exactly one group; the determinism suite enforces both shapes. See the
+  `new-lab` skill (`.claude/skills/new-lab/SKILL.md`) before adding one.
 
 ## Vendored design system
 

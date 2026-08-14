@@ -12,6 +12,7 @@ import type { ParamValues } from '@/sdk/params';
 import { rngFor } from '@/sdk/prng';
 import { SCALES, lcmAll, scaleNote } from '@/labs/shared/music';
 import { useStageCanvas } from '@/labs/shared/stage';
+import { buildIr } from '@/labs/room-that-does-not-exist';
 
 const STEP_BEATS = 0.5; // eighth notes
 const THREADS = [
@@ -87,8 +88,37 @@ function labEvents(params: ParamValues, seed: number, from: number, to: number):
   return events.sort((a, b) => a.beat - b.beat);
 }
 
-function makeInstrument(engine: EngineFacade, _initial: ParamValues): Instrument {
+/*
+ * The loom's room: a small plausible chamber (impossibility 0), synthesized
+ * with the same IR arithmetic the space lab exports, from the loom's own
+ * seed. Only the wet knob opens the door; at 0 the signal path multiplies
+ * through unity gains, so every document published before the room existed
+ * still sounds exactly as written.
+ */
+const LOOM_ROOM: ParamValues = { size: 7, decay: 2.2, damping: 0.5, impossibility: 0 };
+
+function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number): Instrument {
   const ctx = engine.ctx;
+  const input = ctx.createGain();
+  const dry = ctx.createGain();
+  const wet = ctx.createGain();
+  const room = ctx.createConvolver();
+  room.buffer = buildIr(ctx, LOOM_ROOM, seed);
+  input.connect(dry);
+  dry.connect(engine.out);
+  input.connect(room);
+  room.connect(wet);
+  wet.connect(engine.out);
+
+  const applyWet = (params: ParamValues): void => {
+    /* Equal-power like the room lab, but anchored so wet 0 is bit-exact
+       passthrough — the pre-room documents must not change. */
+    const amt = params.wet as number;
+    dry.gain.value = Math.cos((amt * Math.PI) / 2);
+    wet.gain.value = Math.sin((amt * Math.PI) / 2) * 1.1;
+  };
+  applyWet(initial);
+
   return {
     trigger(event, when, _durSec, _params) {
       const release = engine.acquireVoice();
@@ -108,7 +138,7 @@ function makeInstrument(engine: EngineFacade, _initial: ParamValues): Instrument
       env.gain.setTargetAtTime(0, when + 0.01, 0.12);
       osc.connect(lp);
       lp.connect(env);
-      env.connect(engine.out);
+      env.connect(input);
       osc.onended = () => {
         env.disconnect();
         lp.disconnect();
@@ -117,8 +147,15 @@ function makeInstrument(engine: EngineFacade, _initial: ParamValues): Instrument
       osc.start(when);
       osc.stop(when + 0.7);
     },
-    update() {},
-    dispose() {},
+    update(params) {
+      applyWet(params);
+    },
+    dispose() {
+      input.disconnect();
+      dry.disconnect();
+      wet.disconnect();
+      room.disconnect();
+    },
   };
 }
 
@@ -240,7 +277,7 @@ function Stage({ params, seed, beat, recent, onInspect, events }: StageProps): J
 
 export const polymeterLoom = defineLab({
   id: 'polymeter-loom',
-  version: 1,
+  version: 2,
   title: 'Polymeter Loom',
   family: 'pattern',
   question: 'What happens when loops of different lengths share one pulse?',
@@ -283,6 +320,16 @@ export const polymeterLoom = defineLab({
       hint: 'Pitch material for all four threads.',
     },
     { kind: 'int', key: 'root', label: 'Root', min: 36, max: 60, default: 45, hint: 'MIDI root of the warp thread.' },
+    {
+      kind: 'number',
+      key: 'wet',
+      label: 'Wet mix',
+      min: 0,
+      max: 1,
+      step: 0.01,
+      default: 0,
+      hint: 'Lowers the loom into a small plausible room seeded like everything else. 0 is the dry loom, exactly as always published.',
+    },
   ],
   cycleBeats: (params) => Math.min(lcmAll(threadLengths(params)) * STEP_BEATS, 64),
   events: ({ params, seed, range }) => labEvents(params, seed, range.from, range.to),
@@ -307,6 +354,12 @@ export const polymeterLoom = defineLab({
       seed: 33,
       params: { lenA: 5, lenB: 9, lenC: 11, lenD: 13, density: 0.5, scale: 'lydian' },
     },
+    {
+      name: 'In the chamber',
+      note: 'The classic drift lowered into the loom’s own small room — tails between the threads.',
+      seed: 2,
+      params: { wet: 0.6 },
+    },
   ],
   docs: `Polymeter is not polyrhythm: every thread here shares the same eighth-note
 pulse, but each repeats after a different number of cells, so downbeats
@@ -317,5 +370,12 @@ The progress bar at the bottom tracks that superperiod — with lengths
 Each cell rolled a fixed number when the loom was seeded; the density knob
 is a rising tide that submerges cells into sound as it passes their roll.
 Slide it slowly: threads thicken one specific cell at a time, always in the
-same order for the same URL.`,
+same order for the same URL.
+
+The wet knob lowers the loom into a room of its own: a small plausible
+chamber (seven meters, impossibility zero) written by the same impulse-
+response arithmetic the space lab uses, from this loom's seed. It touches
+only the air, never the pattern — events are identical at every wet — and
+at 0 the signal path is exact unity, so every document published before
+the room existed still sounds precisely as written.`,
 });

@@ -73,7 +73,25 @@ export interface StageProps {
   height: number;
 }
 
-export type LabFamily = 'composition' | 'instrumentation' | 'pattern' | 'space' | 'quixotic';
+export type LabFamily =
+  | 'dronelab'
+  | 'composition'
+  | 'instrumentation'
+  | 'pattern'
+  | 'space'
+  | 'quixotic';
+
+/**
+ * One tab of a grouped parameter panel. A console lab that mixes several
+ * embedded documents can exceed the flat 5–8 param budget by partitioning
+ * its params into groups of 5–8 each; the shell renders one tab per group.
+ */
+export interface ParamGroup {
+  id: string;
+  label: string;
+  /** Param keys in this tab, in presentation order. */
+  keys: string[];
+}
 
 /** What an A/B morph position resolves to. */
 export interface MorphResult {
@@ -94,12 +112,20 @@ export interface LabDefinition {
   /** The musical question the lab exists to explore. */
   question: string;
   params: ParamSpec[];
+  /**
+   * Optional tabbed grouping for the param panel. When present, every param
+   * key must appear in exactly one group and each group holds 5–8 params;
+   * absent, the flat 5–8 param rule applies.
+   */
+  paramGroups?: ParamGroup[];
   /** Beats per visible/looping cycle, given params — drives stage + export. */
   cycleBeats(params: ParamValues): number;
   /**
    * Total length of a through-composed piece in beats. Labs loop forever and
-   * omit this; a composition sets it so WAV export renders the whole piece
-   * (its events function returns nothing past this beat).
+   * omit this; a composition sets it so WAV export renders the whole piece.
+   * A one-shot composition's events function returns nothing past this beat;
+   * a looping console lab may keep wrapping past it, in which case the
+   * export renders exactly one pass.
    */
   pieceBeats?: number;
   /** Pure, deterministic events for a beat range. */

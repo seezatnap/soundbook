@@ -145,9 +145,21 @@ describe('every lab', () => {
         expect(after).toEqual(before);
       });
 
-      it('has 5–8 params, stories, docs and a positive cycle', () => {
-        expect(lab.params.length).toBeGreaterThanOrEqual(5);
-        expect(lab.params.length).toBeLessThanOrEqual(8);
+      it('has 5–9 params (per tab when grouped), stories, docs and a positive cycle', () => {
+        if (lab.paramGroups) {
+          /* A console lab partitions its params into tabs of 5–9 each:
+             every key in exactly one group, no strays, no dumping ground. */
+          const grouped = lab.paramGroups.flatMap((group) => group.keys);
+          expect(new Set(grouped).size).toBe(grouped.length);
+          expect([...grouped].sort()).toEqual(lab.params.map((p) => p.key).sort());
+          for (const group of lab.paramGroups) {
+            expect(group.keys.length).toBeGreaterThanOrEqual(5);
+            expect(group.keys.length).toBeLessThanOrEqual(9);
+          }
+        } else {
+          expect(lab.params.length).toBeGreaterThanOrEqual(5);
+          expect(lab.params.length).toBeLessThanOrEqual(9);
+        }
         expect(lab.stories.length).toBeGreaterThanOrEqual(2);
         expect(lab.docs.length).toBeGreaterThan(100);
         expect(lab.cycleBeats(params)).toBeGreaterThan(0);

@@ -256,6 +256,29 @@ body {
   padding-bottom: 2px;
 }
 
+/* Grouped params (console labs): the tab strip stays pinned while each
+   tab's rows scroll. The panel body must stop scrolling itself, and the
+   doubled selector outweighs the vendored .sc-tabs { display: block }. */
+.sb-params .sc-panel__body:has(> .sb-params__tabs) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-params .sb-params__tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sb-params__tabpanel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* -------------------------------------------------------------- drawer */
 
 .sb-drawer {

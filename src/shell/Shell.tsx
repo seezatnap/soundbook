@@ -261,6 +261,7 @@ export function Shell(): JSX.Element {
               />
               <ParamPanel
                 specs={s.lab.params}
+                groups={s.lab.paramGroups}
                 values={effectiveParams}
                 locked={locked}
                 onChange={s.setParam}

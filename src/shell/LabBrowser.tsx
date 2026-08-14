@@ -25,7 +25,15 @@ interface LabBrowserProps {
   onDeleteSnapshot(snapshot: PublishedSnapshot): void;
 }
 
-const FAMILY_ORDER: LabFamily[] = ['composition', 'instrumentation', 'pattern', 'space', 'quixotic'];
+/* DroneLab leads; compositions sit at the bottom of the catalogue. */
+const FAMILY_ORDER: LabFamily[] = [
+  'dronelab',
+  'instrumentation',
+  'pattern',
+  'space',
+  'quixotic',
+  'composition',
+];
 
 export function LabBrowser({
   selectedId,
