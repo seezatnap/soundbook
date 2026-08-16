@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Engine, getEngine, MAX_VOICES } from '@/engine/engine';
+import { unlockAudio } from '@/engine/unlock';
 import { Transport } from '@/engine/transport';
 import { Scheduler } from '@/engine/scheduler';
 import { renderWav } from '@/engine/wav';
@@ -186,7 +187,9 @@ export function useAudio(
 
   const play = useCallback((): void => {
     ensureAudio();
-    void engineRef.current?.resume();
+    /* Mobile unlock must run synchronously inside this gesture: it claims
+       iOS's playback channel (silent switch immunity) before resuming. */
+    if (engineRef.current) unlockAudio(engineRef.current.ctx as AudioContext);
     transportRef.current?.play();
     schedulerRef.current?.resync();
     setPlaying(true);
@@ -199,7 +202,7 @@ export function useAudio(
 
   const step = useCallback((): void => {
     ensureAudio();
-    void engineRef.current?.resume();
+    if (engineRef.current) unlockAudio(engineRef.current.ctx as AudioContext);
     if (transportRef.current?.state === 'playing') return;
     schedulerRef.current?.step();
   }, [ensureAudio]);

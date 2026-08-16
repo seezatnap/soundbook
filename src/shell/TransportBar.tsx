@@ -4,7 +4,7 @@
  * separators, every control wired to the session or audio APIs.
  */
 
-import { type JSX } from 'react';
+import { useState, type JSX } from 'react';
 import { Button } from '@simcity/components/Button';
 import { IconButton } from '@simcity/components/IconButton';
 import { NumberField } from '@simcity/components/NumberField';
@@ -38,11 +38,16 @@ interface TransportBarProps {
   onPublish(): void;
   onExport(): void;
   exporting: boolean;
+  /** Below the mobile breakpoint: transport only, session controls fold
+      into an expandable second row behind a show/hide toggle. */
+  compact?: boolean;
 }
 
 export function TransportBar(props: TransportBarProps): JSX.Element {
-  return (
-    <Toolbar aria-label="Transport and session" className="sb-transport">
+  const [more, setMore] = useState(false);
+
+  const transport = (
+    <>
       {props.playing ? (
         <Button variant="accent" icon="stop" onClick={props.onStop}>
           STOP
@@ -60,9 +65,11 @@ export function TransportBar(props: TransportBarProps): JSX.Element {
       <Tooltip content="Seek to beat zero">
         <IconButton icon="home" label="Rewind to start" onClick={props.onRewind} />
       </Tooltip>
+    </>
+  );
 
-      <ToolbarSeparator />
-
+  const session = (
+    <>
       <NumberField
         label="Tempo"
         value={props.tempo}
@@ -139,6 +146,36 @@ export function TransportBar(props: TransportBarProps): JSX.Element {
           {props.exporting ? 'RENDERING…' : 'EXPORT'}
         </Button>
       </Tooltip>
-    </Toolbar>
+    </>
+  );
+
+  if (!props.compact) {
+    return (
+      <Toolbar aria-label="Transport and session" className="sb-transport">
+        {transport}
+        <ToolbarSeparator />
+        {session}
+      </Toolbar>
+    );
+  }
+
+  return (
+    <div className="sb-transport-stack">
+      <Toolbar aria-label="Transport" className="sb-transport sb-transport--compact">
+        {transport}
+        <span className="sb-transport__spacer" />
+        <IconButton
+          icon={more ? 'chevron-up' : 'chevron-down'}
+          label={more ? 'Hide session controls' : 'Show session controls'}
+          variant={more ? 'accent' : 'default'}
+          onClick={() => setMore((m) => !m)}
+        />
+      </Toolbar>
+      {more && (
+        <Toolbar aria-label="Session controls" className="sb-transport sb-transport--more">
+          {session}
+        </Toolbar>
+      )}
+    </div>
   );
 }

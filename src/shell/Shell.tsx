@@ -22,6 +22,22 @@ import { Drawer } from '@/shell/Drawer';
 
 const PUBLISH_KEY = 'soundbook.published.v1';
 
+/** Below this, panels become slide-in sheets and the toolbar folds. */
+const COMPACT_QUERY = '(max-width: 900px)';
+
+function useCompact(): boolean {
+  const [compact, setCompact] = useState(() => window.matchMedia(COMPACT_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(COMPACT_QUERY);
+    const onChange = (): void => setCompact(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return compact;
+}
+
+type SheetId = 'none' | 'labs' | 'params' | 'inspect';
+
 /*
  * Fire an action on a beat grid while the transport runs. Epochs only fire
  * forward, so seeks, restarts and toggling resync silently instead of
@@ -60,8 +76,11 @@ function loadPublished(): PublishedSnapshot[] {
 export function Shell(): JSX.Element {
   const s = useSession();
   const { toast } = useToast();
+  const compact = useCompact();
 
   const [morph, setMorph] = useState(0);
+  /* Which slide-in sheet is open in compact mode; one at a time, modal. */
+  const [sheet, setSheet] = useState<SheetId>('none');
   const [inspected, setInspected] = useState<NoteEvent | null>(null);
   const [drawerTab, setDrawerTab] = useState('events');
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -132,10 +151,23 @@ export function Shell(): JSX.Element {
     setMorph(0);
   }, [s.lab.id]);
 
-  const onInspect = useCallback((event: NoteEvent): void => {
-    setInspected(event);
-    setDrawerTab('provenance');
-    setDrawerOpen(true);
+  /* Leaving compact closes whatever sheet was up. */
+  useEffect(() => {
+    if (!compact) setSheet('none');
+  }, [compact]);
+
+  const onInspect = useCallback(
+    (event: NoteEvent): void => {
+      setInspected(event);
+      setDrawerTab('provenance');
+      setDrawerOpen(true);
+      if (compact) setSheet('inspect');
+    },
+    [compact],
+  );
+
+  const toggleSheet = useCallback((which: SheetId): void => {
+    setSheet((prev) => (prev === which ? 'none' : which));
   }, []);
 
   const onCopyLink = useCallback((): void => {
@@ -235,6 +267,66 @@ export function Shell(): JSX.Element {
   const bar = Math.floor(beatNow / 4) + 1;
   const beatInBar = Math.floor(beatNow % 4) + 1;
 
+  /* The same furniture serves both layouts: desktop split panes, or
+     compact slide-in sheets with 20px edge tabs. */
+  const browserEl = (
+    <LabBrowser
+      selectedId={s.lab.id}
+      onSelect={(id) => {
+        audio.stop();
+        s.selectLab(id);
+        if (compact) setSheet('none');
+      }}
+      published={published}
+      onOpenSnapshot={onOpenSnapshot}
+      onDeleteSnapshot={onDeleteSnapshot}
+      analyser={audio.analyser}
+    />
+  );
+  const stageEl = (
+    <StageHost
+      lab={s.lab}
+      params={effectiveParams}
+      seed={s.session.seed}
+      playing={audio.playing}
+      getBeat={audio.getBeat}
+      analyser={audio.analyser}
+      recentRef={audio.recentRef}
+      onInspect={onInspect}
+      onSeek={audio.seek}
+    />
+  );
+  const paramsEl = (
+    <ParamPanel
+      specs={s.lab.params}
+      groups={s.lab.paramGroups}
+      values={effectiveParams}
+      locked={locked}
+      onChange={s.setParam}
+      onToggleLock={s.toggleLock}
+      onSetLocks={s.setLocks}
+      morphing={morph > 0}
+      blendedKeys={blendedKeys}
+    />
+  );
+  const drawerEl = (
+    <Drawer
+      lab={s.lab}
+      session={s.session}
+      events={cycleEvents}
+      inspected={inspected}
+      onInspect={onInspect}
+      onLoadStory={(story) => {
+        s.loadStory(story);
+        toast({ title: `STORY: ${story.name.toUpperCase()}`, description: story.note });
+      }}
+      diagnostics={audio.diagnostics}
+      urlPayload={s.urlPayload}
+      tab={drawerTab}
+      onTab={setDrawerTab}
+    />
+  );
+
   return (
     <div className="sb-shell">
       <header className="sb-header bevel">
@@ -278,75 +370,76 @@ export function Shell(): JSX.Element {
         onPublish={onPublish}
         onExport={onExport}
         exporting={exporting}
+        compact={compact}
       />
 
       <div className="sb-body">
-        <SplitPane defaultSize={230} minSize={170} maxSize={400} label="Lab browser">
-          <LabBrowser
-            selectedId={s.lab.id}
-            onSelect={(id) => {
-              audio.stop();
-              s.selectLab(id);
-            }}
-            published={published}
-            onOpenSnapshot={onOpenSnapshot}
-            onDeleteSnapshot={onDeleteSnapshot}
-            analyser={audio.analyser}
-          />
-          <div className="sb-main">
-            <div className="sb-workbench">
-              {/* The params panel is the sized pane: drag the divider left
-                  to widen it into the stage's room. */}
-              <SplitPane
-                primary="second"
-                defaultSize={320}
-                minSize={320}
-                maxSize={720}
-                label="Parameters panel width"
-              >
-                <StageHost
-                  lab={s.lab}
-                  params={effectiveParams}
-                  seed={s.session.seed}
-                  playing={audio.playing}
-                  getBeat={audio.getBeat}
-                  analyser={audio.analyser}
-                  recentRef={audio.recentRef}
-                  onInspect={onInspect}
-                  onSeek={audio.seek}
-                />
-                <ParamPanel
-                  specs={s.lab.params}
-                  groups={s.lab.paramGroups}
-                  values={effectiveParams}
-                  locked={locked}
-                  onChange={s.setParam}
-                  onToggleLock={s.toggleLock}
-                  onSetLocks={s.setLocks}
-                  morphing={morph > 0}
-                  blendedKeys={blendedKeys}
-                />
-              </SplitPane>
-            </div>
-            {drawerOpen && (
-              <Drawer
-                lab={s.lab}
-                session={s.session}
-                events={cycleEvents}
-                inspected={inspected}
-                onInspect={onInspect}
-                onLoadStory={(story) => {
-                  s.loadStory(story);
-                  toast({ title: `STORY: ${story.name.toUpperCase()}`, description: story.note });
-                }}
-                diagnostics={audio.diagnostics}
-                urlPayload={s.urlPayload}
-                tab={drawerTab}
-                onTab={setDrawerTab}
-              />
+        {compact ? (
+          <div className="sb-mobile">
+            <div className="sb-mobile__stage">{stageEl}</div>
+            {sheet !== 'none' && (
+              <div className="sb-scrim" aria-hidden="true" onClick={() => setSheet('none')} />
             )}
+            <div className={`sb-sheet sb-sheet--left${sheet === 'labs' ? ' sb-sheet--open' : ''}`}>
+              <div className="sb-sheet__body">{browserEl}</div>
+              <button
+                type="button"
+                className="sb-sheet__tab"
+                aria-expanded={sheet === 'labs'}
+                onClick={() => toggleSheet('labs')}
+              >
+                LABS
+              </button>
+            </div>
+            <div
+              className={`sb-sheet sb-sheet--right${sheet === 'params' ? ' sb-sheet--open' : ''}`}
+            >
+              <div className="sb-sheet__body">{paramsEl}</div>
+              <button
+                type="button"
+                className="sb-sheet__tab"
+                aria-expanded={sheet === 'params'}
+                onClick={() => toggleSheet('params')}
+              >
+                PARAMS
+              </button>
+            </div>
+            <div
+              className={`sb-sheet sb-sheet--bottom${sheet === 'inspect' ? ' sb-sheet--open' : ''}`}
+            >
+              <div className="sb-sheet__body">{drawerEl}</div>
+              <button
+                type="button"
+                className="sb-sheet__tab"
+                aria-expanded={sheet === 'inspect'}
+                onClick={() => toggleSheet('inspect')}
+              >
+                INSPECTOR
+              </button>
+            </div>
           </div>
-        </SplitPane>
+        ) : (
+          <SplitPane defaultSize={230} minSize={170} maxSize={400} label="Lab browser">
+            {browserEl}
+            <div className="sb-main">
+              <div className="sb-workbench">
+                {/* The params panel is the sized pane: drag the divider left
+                    to widen it into the stage's room. */}
+                <SplitPane
+                  primary="second"
+                  defaultSize={320}
+                  minSize={320}
+                  maxSize={720}
+                  label="Parameters panel width"
+                >
+                  {stageEl}
+                  {paramsEl}
+                </SplitPane>
+              </div>
+              {drawerOpen && drawerEl}
+            </div>
+          </SplitPane>
+        )}
       </div>
 
       <StatusBar className="sb-status">
