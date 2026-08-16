@@ -72,6 +72,7 @@ export function Drawer({
           tempo: session.tempo,
           params: session.params,
           b: session.b ?? undefined,
+          locked: session.locked.size > 0 ? [...session.locked].sort() : undefined,
         },
         null,
         2,

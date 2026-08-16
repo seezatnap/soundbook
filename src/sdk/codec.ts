@@ -16,6 +16,8 @@ export interface SessionState {
   params: ParamValues;
   /** The B snapshot for A/B morphing, sparse; absent when unused. */
   b?: ParamValues;
+  /** Param keys locked against randomize/morph; absent when none. */
+  locked?: string[];
 }
 
 const CODEC_VERSION = '1';
@@ -57,6 +59,7 @@ interface WireState {
   t: number;
   p?: ParamValues;
   b?: ParamValues;
+  k?: string[];
 }
 
 /** Encode a session to the fragment payload (without the leading '#'). */
@@ -73,6 +76,9 @@ export async function encodeState(state: SessionState, lab: LabDefinition): Prom
     const sparseB = diffFromDefaults(lab.params, state.b);
     wire.b = sparseB;
   }
+  /* Sorted so identical states always emit identical payloads (publish
+     snapshots are content-addressed on the payload string). */
+  if (state.locked && state.locked.length > 0) wire.k = [...state.locked].sort();
   const json = new TextEncoder().encode(JSON.stringify(wire));
   const packed = await deflate(json);
   return `${CODEC_VERSION}.${bytesToBase64Url(packed)}`;
@@ -104,6 +110,14 @@ export async function decodeState(
       params: sanitizeAll(lab.params, { ...defaultsOf(lab.params), ...wire.p }),
     };
     if (wire.b) state.b = sanitizeAll(lab.params, { ...defaultsOf(lab.params), ...wire.b });
+    if (Array.isArray(wire.k)) {
+      /* Locks are validated like params: unknown keys dropped, dupes folded. */
+      const keys = wire.k.filter(
+        (key): key is string =>
+          typeof key === 'string' && lab.params.some((spec) => spec.key === key),
+      );
+      if (keys.length > 0) state.locked = [...new Set(keys)].sort();
+    }
     return state;
   } catch {
     return null;

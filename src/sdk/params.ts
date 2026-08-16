@@ -15,6 +15,11 @@ interface ParamBase {
   label: string;
   /** One-line explanation surfaced in the control's tooltip/docs. */
   hint?: string;
+  /**
+   * Randomize never touches this param. For transport/meta controls (loop,
+   * AutoRandomize itself) that steer playback rather than the material.
+   */
+  noRandom?: boolean;
 }
 
 export interface NumberParam extends ParamBase {
@@ -107,7 +112,7 @@ export function randomizeParams(
 ): ParamValues {
   const out: ParamValues = {};
   for (const spec of specs) {
-    if (locked.has(spec.key)) {
+    if (locked.has(spec.key) || spec.noRandom) {
       out[spec.key] = current[spec.key];
       continue;
     }

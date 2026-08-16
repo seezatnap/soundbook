@@ -20,9 +20,9 @@ npm run build
 
 ## The promise
 
-**The URL is the document.** Lab, version, seed, tempo, parameters and the A/B
-snapshot are validated, default-stripped, deflate-compressed and encoded into
-the URL fragment. The same URL always reproduces the same event sequence —
+**The URL is the document.** Lab, version, seed, tempo, parameters, param
+locks and the A/B snapshot are validated, default-stripped, deflate-compressed
+and encoded into the URL fragment. The same URL always reproduces the same event sequence —
 not necessarily bit-identical browser audio.
 
 Everything affecting the music is explicit, deterministic, serializable and

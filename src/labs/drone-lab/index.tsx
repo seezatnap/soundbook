@@ -54,7 +54,26 @@ const MASTER_PARAMS: ParamSpec[] = [
     key: 'loop',
     label: 'Loop',
     default: true,
+    noRandom: true,
     hint: 'Wrap the 360-beat track end-to-start forever. Off plays it once and falls silent.',
+  },
+  {
+    kind: 'toggle',
+    key: 'autoRandom',
+    label: 'AutoRandomize',
+    default: false,
+    noRandom: true,
+    hint: 'While playing, hit “randomize unlocked parameters” every N beats. Locked params and the transport controls sit out.',
+  },
+  {
+    kind: 'int',
+    key: 'autoRandomBeats',
+    label: 'AutoRandomize beats',
+    min: 1,
+    max: 128,
+    default: 18,
+    noRandom: true,
+    hint: 'The N: beats between automatic randomizations.',
   },
   {
     kind: 'number',
@@ -721,6 +740,12 @@ export const droneLab = defineLab({
       seed: 1,
       params: { loop: false },
     },
+    {
+      name: 'Roulette',
+      note: 'AutoRandomize every 18 beats — the bench plays itself. Lock whatever must survive.',
+      seed: 1,
+      params: { autoRandom: true },
+    },
   ],
   docs: `DroneLab takes the three layers of Concordance No. 1 — the Oscillator
 Microscope drone, the sparks of A Room That Does Not Exist, and the
@@ -740,7 +765,12 @@ carries the room's own wet mix, and the Loom tab's wet lowers the loom into
 that same impulse response — one space, two doors. (The loom's private
 chamber from its standalone lab stays closed here; in DroneLab there is
 only the Space room.) The Master tab keeps the composition's console —
-harmonize, stars shift, transpose, and one level trim per layer.
+harmonize, stars shift, transpose, one level trim per layer — plus the
+transport controls: Loop, and AutoRandomize, which presses the
+randomize-unlocked-parameters button every N beats while the transport
+runs. Locks are part of the document, so a published Roulette carries
+exactly which knobs its author nailed down; randomize (manual or auto)
+never touches the transport controls themselves.
 
 One seed writes everything. The master seed derives a subseed per layer
 (loom figures, spark placements, room noise, drone wobble) plus the

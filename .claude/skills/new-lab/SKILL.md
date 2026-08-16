@@ -60,6 +60,12 @@ generates everything else. Work through this checklist in order.
   engine-side: the events function must not read them, and `update()` must
   apply them live. Pin that with a test asserting events are equal across
   those params.
+- Params that steer playback rather than material (loop, AutoRandomize) set
+  `noRandom: true` so randomize — manual or automatic — never flips them.
+- Param locks are document state: `session.locked` serializes into the URL
+  (codec field `k`, validated against the schema on decode) and rides
+  undo/redo and published snapshots. Nothing lab-specific to do — but don't
+  reintroduce shell-side lock state.
 
 ## 4. Instrument
 

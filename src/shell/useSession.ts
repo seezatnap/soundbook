@@ -1,7 +1,9 @@
 /*
  * Session state: the document. Everything here round-trips through the URL
  * fragment; undo/redo, story loading, randomize and A/B all operate on this
- * one record. UI-only state (locks, drawer tab) deliberately lives elsewhere.
+ * one record — locks included, so a published URL pins what its author
+ * pinned. UI-only state (drawer tab, morph position) deliberately lives
+ * elsewhere.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,10 +19,19 @@ export interface Session {
   tempo: number;
   params: ParamValues;
   b: ParamValues | null;
+  /** Param keys pinned against randomize and morph — part of the document. */
+  locked: ReadonlySet<string>;
 }
 
 function freshSession(lab: LabDefinition): Session {
-  return { labId: lab.id, seed: 1, tempo: 120, params: defaultsOf(lab.params), b: null };
+  return {
+    labId: lab.id,
+    seed: 1,
+    tempo: 120,
+    params: defaultsOf(lab.params),
+    b: null,
+    locked: new Set(),
+  };
 }
 
 const HISTORY_CAP = 100;
@@ -38,7 +49,8 @@ export interface SessionApi {
   setTempo(tempo: number): void;
   selectLab(id: string): void;
   loadStory(story: Story): void;
-  randomize(locked: ReadonlySet<string>): void;
+  toggleLock(key: string): void;
+  randomize(): void;
   setB(b: ParamValues | null): void;
   swapAB(): void;
   undo(): void;
@@ -93,6 +105,7 @@ export function useSession(): SessionApi {
       tempo: state.tempo,
       params: state.params,
       b: state.b ?? null,
+      locked: new Set(state.locked ?? []),
     });
     pastRef.current = [];
     futureRef.current = [];
@@ -123,6 +136,7 @@ export function useSession(): SessionApi {
           tempo: session.tempo,
           params: session.params,
           b: session.b ?? undefined,
+          locked: [...session.locked],
         },
         lab,
       ).then((payload) => {
@@ -196,19 +210,28 @@ export function useSession(): SessionApi {
     [commit],
   );
 
-  const randomize = useCallback(
-    (locked: ReadonlySet<string>): void => {
+  const toggleLock = useCallback(
+    (key: string): void => {
       commit((prev) => {
-        const target = findLab(prev.labId);
-        if (!target) return prev;
-        /* Non-deterministic by design: a user gesture asking for novelty.
-           The result immediately becomes explicit, serialized state. */
-        const rng = makeRng(freshSeed());
-        return { ...prev, params: randomizeParams(target.params, prev.params, locked, rng) };
+        const locked = new Set(prev.locked);
+        if (locked.has(key)) locked.delete(key);
+        else locked.add(key);
+        return { ...prev, locked };
       });
     },
     [commit],
   );
+
+  const randomize = useCallback((): void => {
+    commit((prev) => {
+      const target = findLab(prev.labId);
+      if (!target) return prev;
+      /* Non-deterministic by design: a user gesture asking for novelty.
+         The result immediately becomes explicit, serialized state. */
+      const rng = makeRng(freshSeed());
+      return { ...prev, params: randomizeParams(target.params, prev.params, prev.locked, rng) };
+    });
+  }, [commit]);
 
   const setB = useCallback(
     (b: ParamValues | null): void => {
@@ -252,6 +275,7 @@ export function useSession(): SessionApi {
         tempo: session.tempo,
         params: session.params,
         b: session.b ?? undefined,
+        locked: [...session.locked],
       },
       lab,
     );
@@ -277,6 +301,7 @@ export function useSession(): SessionApi {
     setTempo,
     selectLab,
     loadStory,
+    toggleLock,
     randomize,
     setB,
     swapAB,

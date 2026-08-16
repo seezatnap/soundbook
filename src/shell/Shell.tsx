@@ -4,7 +4,7 @@
  * all driven by the session document and the shared audio engine.
  */
 
-import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { IconButton } from '@simcity/components/IconButton';
 import { SplitPane } from '@simcity/components/SplitPane';
 import { LED, Readout, StatusBar } from '@simcity/components/StatusBar';
@@ -36,7 +36,6 @@ export function Shell(): JSX.Element {
   const s = useSession();
   const { toast } = useToast();
 
-  const [locked, setLocked] = useState<ReadonlySet<string>>(new Set());
   const [morph, setMorph] = useState(0);
   const [inspected, setInspected] = useState<NoteEvent | null>(null);
   const [drawerTab, setDrawerTab] = useState('events');
@@ -45,6 +44,9 @@ export function Shell(): JSX.Element {
   const [exporting, setExporting] = useState(false);
   const [chrome, setChrome] = useState<'dark' | 'light'>('dark');
   const [statusTick, setStatusTick] = useState(0);
+
+  /* Locks are document state — serialized, published, undoable. */
+  const locked = s.session.locked;
 
   /* What the ear gets: A, or the A→B blend while morphing. Labs may
      resolve the blend themselves (e.g. averaging waveforms) and report
@@ -69,6 +71,24 @@ export function Shell(): JSX.Element {
 
   const audio = useAudio(s.lab, effectiveParams, s.session.seed, s.session.tempo);
 
+  /* AutoRandomize: a lab that declares autoRandom/autoRandomBeats (DroneLab's
+     Master tab) presses the randomize-unlocked-parameters button every N
+     beats while the transport runs. Epochs only fire forward, so seeks,
+     restarts and toggling resync silently instead of rolling the dice. */
+  const autoRandom = effectiveParams.autoRandom === true;
+  const autoBeats = Math.max(1, Number(effectiveParams.autoRandomBeats) || 1);
+  const autoEpochRef = useRef(0);
+  useEffect(() => {
+    if (!(autoRandom && audio.playing)) return;
+    autoEpochRef.current = Math.floor(audio.getBeat() / autoBeats);
+    const timer = setInterval(() => {
+      const epoch = Math.floor(audio.getBeat() / autoBeats);
+      if (epoch > autoEpochRef.current) s.randomize();
+      autoEpochRef.current = epoch;
+    }, 100);
+    return () => clearInterval(timer);
+  }, [autoRandom, autoBeats, audio.playing, audio.getBeat, s.randomize]);
+
   /* Coarse clock for the status bar readouts. */
   useEffect(() => {
     const timer = setInterval(() => setStatusTick((t) => t + 1), 250);
@@ -80,26 +100,17 @@ export function Shell(): JSX.Element {
     document.documentElement.setAttribute('data-chrome', chrome);
   }, [chrome]);
 
-  /* Lab switch: clear inspection, morph, locks (schemas differ). */
+  /* Lab switch: clear inspection and morph. Locks travel with the session
+     (parked per lab, decoded from the URL), so they are not cleared here. */
   useEffect(() => {
     setInspected(null);
     setMorph(0);
-    setLocked(new Set());
   }, [s.lab.id]);
 
   const onInspect = useCallback((event: NoteEvent): void => {
     setInspected(event);
     setDrawerTab('provenance');
     setDrawerOpen(true);
-  }, []);
-
-  const onToggleLock = useCallback((key: string): void => {
-    setLocked((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
   }, []);
 
   const onCopyLink = useCallback((): void => {
@@ -224,7 +235,7 @@ export function Shell(): JSX.Element {
         seed={s.session.seed}
         onSeed={s.setSeed}
         onReseed={s.reseed}
-        onRandomize={() => s.randomize(locked)}
+        onRandomize={s.randomize}
         canUndo={s.canUndo}
         canRedo={s.canRedo}
         onUndo={s.undo}
@@ -275,7 +286,7 @@ export function Shell(): JSX.Element {
                 values={effectiveParams}
                 locked={locked}
                 onChange={s.setParam}
-                onToggleLock={onToggleLock}
+                onToggleLock={s.toggleLock}
                 morphing={morph > 0}
                 blendedKeys={blendedKeys}
               />

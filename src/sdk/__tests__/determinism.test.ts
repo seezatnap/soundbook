@@ -237,6 +237,24 @@ describe('codec hardening', () => {
     expect(await decodeState('9.AAAA', findLab)).toBeNull();
   });
 
+  it('locks round-trip and unknown lock keys are dropped', async () => {
+    const lab = LABS[0];
+    const state = {
+      labId: lab.id,
+      version: lab.version,
+      seed: 1,
+      tempo: 120,
+      params: defaultsOf(lab.params),
+      locked: ['unison', 'evil', 'freq', 'freq'],
+    };
+    const payload = await encodeState(state, lab);
+    const decoded = await decodeState(payload, findLab);
+    expect(decoded!.locked).toEqual(['freq', 'unison']);
+    /* No locks: the field stays out of the wire format entirely. */
+    const bare = await encodeState({ ...state, locked: [] }, lab);
+    expect((await decodeState(bare, findLab))!.locked).toBeUndefined();
+  });
+
   it('rejects unknown labs', async () => {
     const lab = LABS[0];
     const payload = await encodeState(

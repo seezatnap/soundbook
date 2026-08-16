@@ -7,7 +7,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { defaultsOf } from '@/sdk/params';
+import { defaultsOf, randomizeParams } from '@/sdk/params';
+import { makeRng } from '@/sdk/prng';
 import { droneLab, droneLabSubseed } from '@/labs/drone-lab';
 
 const params = defaultsOf(droneLab.params);
@@ -122,6 +123,16 @@ describe('the tabs', () => {
 
   it('the wets are engine-side: events do not depend on them', () => {
     expect(grab({ wet: 0, loomWet: 1 }, 0, 32)).toEqual(grab({}, 0, 32));
+  });
+
+  it('randomize never touches the transport controls', () => {
+    /* AutoRandomize presses randomize on a beat grid — if randomize could
+       flip loop or AutoRandomize itself, the feature would scramble its
+       own switch. noRandom pins all three. */
+    const out = randomizeParams(droneLab.params, params, new Set(), makeRng(7));
+    expect(out.loop).toBe(params.loop);
+    expect(out.autoRandom).toBe(params.autoRandom);
+    expect(out.autoRandomBeats).toBe(params.autoRandomBeats);
   });
 
   it('stars-shift moves the loom and only the loom', () => {
