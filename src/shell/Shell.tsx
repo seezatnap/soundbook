@@ -22,6 +22,31 @@ import { Drawer } from '@/shell/Drawer';
 
 const PUBLISH_KEY = 'soundbook.published.v1';
 
+/*
+ * Fire an action on a beat grid while the transport runs. Epochs only fire
+ * forward, so seeks, restarts and toggling resync silently instead of
+ * triggering. Drives AutoRandomize and AutoRandomSeed.
+ */
+function useBeatTrigger(
+  enabled: boolean,
+  beats: number,
+  playing: boolean,
+  getBeat: () => number,
+  fire: () => void,
+): void {
+  const epochRef = useRef(0);
+  useEffect(() => {
+    if (!(enabled && playing)) return;
+    epochRef.current = Math.floor(getBeat() / beats);
+    const timer = setInterval(() => {
+      const epoch = Math.floor(getBeat() / beats);
+      if (epoch > epochRef.current) fire();
+      epochRef.current = epoch;
+    }, 100);
+    return () => clearInterval(timer);
+  }, [enabled, beats, playing, getBeat, fire]);
+}
+
 function loadPublished(): PublishedSnapshot[] {
   try {
     const raw = localStorage.getItem(PUBLISH_KEY);
@@ -71,23 +96,23 @@ export function Shell(): JSX.Element {
 
   const audio = useAudio(s.lab, effectiveParams, s.session.seed, s.session.tempo);
 
-  /* AutoRandomize: a lab that declares autoRandom/autoRandomBeats (DroneLab's
-     Master tab) presses the randomize-unlocked-parameters button every N
-     beats while the transport runs. Epochs only fire forward, so seeks,
-     restarts and toggling resync silently instead of rolling the dice. */
-  const autoRandom = effectiveParams.autoRandom === true;
-  const autoBeats = Math.max(1, Number(effectiveParams.autoRandomBeats) || 1);
-  const autoEpochRef = useRef(0);
-  useEffect(() => {
-    if (!(autoRandom && audio.playing)) return;
-    autoEpochRef.current = Math.floor(audio.getBeat() / autoBeats);
-    const timer = setInterval(() => {
-      const epoch = Math.floor(audio.getBeat() / autoBeats);
-      if (epoch > autoEpochRef.current) s.randomize();
-      autoEpochRef.current = epoch;
-    }, 100);
-    return () => clearInterval(timer);
-  }, [autoRandom, autoBeats, audio.playing, audio.getBeat, s.randomize]);
+  /* Labs that declare the transport-control params (DroneLab's Master tab)
+     get their buttons pressed on a beat grid: AutoRandomize → randomize
+     unlocked params, AutoRandomSeed → reseed (crossfaded via fadeBeats). */
+  useBeatTrigger(
+    effectiveParams.autoRandom === true,
+    Math.max(1, Number(effectiveParams.autoRandomBeats) || 1),
+    audio.playing,
+    audio.getBeat,
+    s.randomize,
+  );
+  useBeatTrigger(
+    effectiveParams.autoReseed === true,
+    Math.max(1, Number(effectiveParams.autoReseedBeats) || 1),
+    audio.playing,
+    audio.getBeat,
+    s.reseed,
+  );
 
   /* Coarse clock for the status bar readouts. */
   useEffect(() => {
@@ -269,27 +294,37 @@ export function Shell(): JSX.Element {
           />
           <div className="sb-main">
             <div className="sb-workbench">
-              <StageHost
-                lab={s.lab}
-                params={effectiveParams}
-                seed={s.session.seed}
-                playing={audio.playing}
-                getBeat={audio.getBeat}
-                analyser={audio.analyser}
-                recentRef={audio.recentRef}
-                onInspect={onInspect}
-                onSeek={audio.seek}
-              />
-              <ParamPanel
-                specs={s.lab.params}
-                groups={s.lab.paramGroups}
-                values={effectiveParams}
-                locked={locked}
-                onChange={s.setParam}
-                onToggleLock={s.toggleLock}
-                morphing={morph > 0}
-                blendedKeys={blendedKeys}
-              />
+              {/* The params panel is the sized pane: drag the divider left
+                  to widen it into the stage's room. */}
+              <SplitPane
+                primary="second"
+                defaultSize={320}
+                minSize={320}
+                maxSize={720}
+                label="Parameters panel width"
+              >
+                <StageHost
+                  lab={s.lab}
+                  params={effectiveParams}
+                  seed={s.session.seed}
+                  playing={audio.playing}
+                  getBeat={audio.getBeat}
+                  analyser={audio.analyser}
+                  recentRef={audio.recentRef}
+                  onInspect={onInspect}
+                  onSeek={audio.seek}
+                />
+                <ParamPanel
+                  specs={s.lab.params}
+                  groups={s.lab.paramGroups}
+                  values={effectiveParams}
+                  locked={locked}
+                  onChange={s.setParam}
+                  onToggleLock={s.toggleLock}
+                  morphing={morph > 0}
+                  blendedKeys={blendedKeys}
+                />
+              </SplitPane>
             </div>
             {drawerOpen && (
               <Drawer

@@ -48,13 +48,18 @@ function adopt(specs: readonly ParamSpec[], overrides: Record<string, ParamValue
   );
 }
 
-const MASTER_PARAMS: ParamSpec[] = [
+/*
+ * Transport controls: they steer playback, not the material. `control`
+ * makes them persistent without locks — randomize (manual or auto) skips
+ * them and A/B morph pins them to A — while the URL still carries them.
+ */
+const CONTROL_PARAMS: ParamSpec[] = [
   {
     kind: 'toggle',
     key: 'loop',
     label: 'Loop',
     default: true,
-    noRandom: true,
+    control: true,
     hint: 'Wrap the 360-beat track end-to-start forever. Off plays it once and falls silent.',
   },
   {
@@ -62,8 +67,8 @@ const MASTER_PARAMS: ParamSpec[] = [
     key: 'autoRandom',
     label: 'AutoRandomize',
     default: false,
-    noRandom: true,
-    hint: 'While playing, hit “randomize unlocked parameters” every N beats. Locked params and the transport controls sit out.',
+    control: true,
+    hint: 'While playing, hit “randomize unlocked parameters” every N beats. Locked params and these controls sit out.',
   },
   {
     kind: 'int',
@@ -72,9 +77,40 @@ const MASTER_PARAMS: ParamSpec[] = [
     min: 1,
     max: 128,
     default: 18,
-    noRandom: true,
+    control: true,
     hint: 'The N: beats between automatic randomizations.',
   },
+  {
+    kind: 'toggle',
+    key: 'autoReseed',
+    label: 'AutoRandomSeed',
+    default: false,
+    control: true,
+    hint: 'While playing, press Reseed every N beats — a fresh master seed for every layer, crossfaded in over the fade window.',
+  },
+  {
+    kind: 'int',
+    key: 'autoReseedBeats',
+    label: 'AutoRandomSeed beats',
+    min: 1,
+    max: 128,
+    default: 18,
+    control: true,
+    hint: 'The N: beats between automatic reseeds.',
+  },
+  {
+    kind: 'int',
+    key: 'fadeBeats',
+    label: 'Fade beats',
+    min: 0,
+    max: 32,
+    default: 4,
+    control: true,
+    hint: 'Crossfade window for reseeds and lab switches, in beats: the old iteration rings out while the new one fades in. 0 is a hard cut.',
+  },
+];
+
+const MASTER_PARAMS: ParamSpec[] = [
   {
     kind: 'number',
     key: 'harmonize',
@@ -178,7 +214,13 @@ const OSC_PARAMS: ParamSpec[] = adopt(oscillatorMicroscope.params, {
   spread: 16,
 });
 
-const PARAMS: ParamSpec[] = [...MASTER_PARAMS, ...LOOM_PARAMS, ...SPACE_PARAMS, ...OSC_PARAMS];
+const PARAMS: ParamSpec[] = [
+  ...CONTROL_PARAMS,
+  ...MASTER_PARAMS,
+  ...LOOM_PARAMS,
+  ...SPACE_PARAMS,
+  ...OSC_PARAMS,
+];
 
 /* -------------------------------------------------------------- the score */
 
@@ -424,13 +466,20 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     inner.set(track.id, track.lab.makeInstrument(facade, slice, droneLabSubseed(seed, track.id)));
   }
 
-  const applyMix = (params: ParamValues): void => {
+  /* Live changes glide; the initial application is exact so offline WAV
+     renders open at the right levels from sample zero. */
+  const glide = (param: AudioParam, target: number, smooth: boolean): void => {
+    if (smooth) param.setTargetAtTime(target, ctx.currentTime, 0.08);
+    else param.value = target;
+  };
+
+  const applyMix = (params: ParamValues, smooth: boolean): void => {
     for (const track of TRACKS) {
       const slice = sliceFor(track, params);
       slices.set(track.id, slice);
       inner.get(track.id)?.update(slice);
       const level = params[`${track.id}Level`] as number;
-      gains.get(track.id)!.gain.value = level * level; // audio taper
+      glide(gains.get(track.id)!.gain, level * level, smooth); // audio taper
     }
     const space = slices.get('sparks')!;
     const roomKey = [
@@ -441,15 +490,17 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       space.impossibility,
       ctx.sampleRate,
     ].join('|');
-    loomRoom?.set(roomKey, () => buildIr(ctx, space, sparksSeed));
+    /* The shared room exits on its own reverberant timescale. */
+    const ringOut = Math.min(0.6, Math.max(0.1, (space.decay as number) * 0.12));
+    loomRoom?.set(roomKey, () => buildIr(ctx, space, sparksSeed), ringOut);
     /* Same equal-power law the room lab uses for its own wet knob. */
     const send = params.loomWet as number;
     if (loomDry && loomWet) {
-      loomDry.gain.value = Math.cos((send * Math.PI) / 2) * 0.9;
-      loomWet.gain.value = Math.sin((send * Math.PI) / 2) * 1.1;
+      glide(loomDry.gain, Math.cos((send * Math.PI) / 2) * 0.9, smooth);
+      glide(loomWet.gain, Math.sin((send * Math.PI) / 2) * 1.1, smooth);
     }
   };
-  applyMix(initial);
+  applyMix(initial, false);
 
   return {
     trigger(event, when, durSec, _params) {
@@ -463,7 +514,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       instrument.trigger({ ...event, voice }, when, durSec, slice);
     },
     update(params) {
-      applyMix(params);
+      applyMix(params, true);
     },
     dispose() {
       inner.forEach((instrument) => instrument.dispose());
@@ -705,6 +756,7 @@ export const droneLab = defineLab({
   question: 'What do the loom, the room and the oscillator become when the arc is taken away?',
   params: PARAMS,
   paramGroups: [
+    { id: 'controls', label: 'Controls', keys: CONTROL_PARAMS.map((p) => p.key) },
     { id: 'master', label: 'Master', keys: MASTER_PARAMS.map((p) => p.key) },
     { id: 'loom', label: 'Loom', keys: LOOM_PARAMS.map((p) => p.key) },
     { id: 'space', label: 'Space', keys: SPACE_PARAMS.map((p) => p.key) },
@@ -742,9 +794,9 @@ export const droneLab = defineLab({
     },
     {
       name: 'Roulette',
-      note: 'AutoRandomize every 18 beats — the bench plays itself. Lock whatever must survive.',
+      note: 'AutoRandomize every 18 beats, a fresh seed every 72 — the bench plays itself. Lock whatever must survive.',
       seed: 1,
-      params: { autoRandom: true },
+      params: { autoRandom: true, autoReseed: true, autoReseedBeats: 72 },
     },
   ],
   docs: `DroneLab takes the three layers of Concordance No. 1 — the Oscillator
@@ -764,13 +816,19 @@ it. The wet controls live on the layers that own them: the Space tab
 carries the room's own wet mix, and the Loom tab's wet lowers the loom into
 that same impulse response — one space, two doors. (The loom's private
 chamber from its standalone lab stays closed here; in DroneLab there is
-only the Space room.) The Master tab keeps the composition's console —
-harmonize, stars shift, transpose, one level trim per layer — plus the
-transport controls: Loop, and AutoRandomize, which presses the
-randomize-unlocked-parameters button every N beats while the transport
-runs. Locks are part of the document, so a published Roulette carries
-exactly which knobs its author nailed down; randomize (manual or auto)
-never touches the transport controls themselves.
+only the Space room.) The Master tab keeps the composition's console:
+harmonize, stars shift, transpose, one level trim per layer.
+
+The Controls tab steers playback rather than the material: Loop;
+AutoRandomize, which presses the randomize-unlocked-parameters button
+every N beats while the transport runs; AutoRandomSeed, which presses
+Reseed on its own beat grid the same way; and Fade beats, the crossfade
+window for reseeds — the old iteration rings out while the new one fades
+in on top, and rooms exit on their own reverberant timescale. Controls are
+persistent without locks: randomize (manual or auto) skips them and the
+A/B morph pins them, yet the URL carries them like everything else. Locks
+are part of the document too, so a published Roulette carries exactly
+which knobs its author nailed down.
 
 One seed writes everything. The master seed derives a subseed per layer
 (loom figures, spark placements, room noise, drone wobble) plus the

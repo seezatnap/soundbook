@@ -11,7 +11,7 @@ the task they cover; they encode protocol that is easy to violate silently.
 
 | Skill | Use when |
 | --- | --- |
-| `new-lab` | Adding any Soundbook lab or param to one: flat labs, compositions, or console labs that embed other labs (DroneLab). Covers determinism rules, param groups (tabbed panels of 5–9 params), key collisions between embedded schemas, sub-instrument wiring, derived subseeds, loop wrapping, registration, and the required tests. |
+| `new-lab` | Adding any Soundbook lab or param to one: flat labs, compositions, or console labs that embed other labs (DroneLab). Covers determinism rules, param groups (tabbed panels of 5–10 params), key collisions between embedded schemas, sub-instrument wiring, derived subseeds, loop wrapping, registration, and the required tests. |
 
 When a task teaches you a repeatable protocol this table doesn't cover,
 add a skill for it and list it here.

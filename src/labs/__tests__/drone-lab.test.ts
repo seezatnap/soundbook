@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { defaultsOf, randomizeParams } from '@/sdk/params';
+import { defaultsOf, morphParams, randomizeParams } from '@/sdk/params';
 import { makeRng } from '@/sdk/prng';
 import { droneLab, droneLabSubseed } from '@/labs/drone-lab';
 
@@ -89,8 +89,10 @@ describe('one seed, every layer', () => {
   it('derives distinct subseeds per layer and shows none of them as params', () => {
     const subs = TRACKS.map((track) => droneLabSubseed(seed, track));
     expect(new Set(subs).size).toBe(TRACKS.length);
+    /* No param stores a seed value (AutoRandomSeed's controls mention seeds
+       but only steer the Reseed button — they hold a toggle and a count). */
     for (const spec of droneLab.params) {
-      expect(spec.key.toLowerCase().includes('seed')).toBe(false);
+      expect(spec.key === 'seed' || spec.key.endsWith('Seed')).toBe(false);
     }
   });
 
@@ -133,6 +135,18 @@ describe('the tabs', () => {
     expect(out.loop).toBe(params.loop);
     expect(out.autoRandom).toBe(params.autoRandom);
     expect(out.autoRandomBeats).toBe(params.autoRandomBeats);
+    expect(out.autoReseed).toBe(params.autoReseed);
+    expect(out.autoReseedBeats).toBe(params.autoReseedBeats);
+    expect(out.fadeBeats).toBe(params.fadeBeats);
+  });
+
+  it('morph pins the transport controls to A while musical params blend', () => {
+    const b = { ...params, loop: false, autoRandomBeats: 128, fadeBeats: 16, harmonize: 0 };
+    const mid = morphParams(droneLab.params, params, b, 0.6);
+    expect(mid.loop).toBe(params.loop);
+    expect(mid.autoRandomBeats).toBe(params.autoRandomBeats);
+    expect(mid.fadeBeats).toBe(params.fadeBeats);
+    expect(mid.harmonize).not.toBe(params.harmonize);
   });
 
   it('stars-shift moves the loom and only the loom', () => {

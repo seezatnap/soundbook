@@ -110,14 +110,22 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
   room.connect(wet);
   wet.connect(engine.out);
 
-  const applyWet = (params: ParamValues): void => {
+  const applyWet = (params: ParamValues, smooth: boolean): void => {
     /* Equal-power like the room lab, but anchored so wet 0 is bit-exact
-       passthrough — the pre-room documents must not change. */
+       passthrough — the pre-room documents must not change. Live changes
+       glide; the initial application is exact for offline renders. */
     const amt = params.wet as number;
-    dry.gain.value = Math.cos((amt * Math.PI) / 2);
-    wet.gain.value = Math.sin((amt * Math.PI) / 2) * 1.1;
+    const dryAmt = Math.cos((amt * Math.PI) / 2);
+    const wetAmt = Math.sin((amt * Math.PI) / 2) * 1.1;
+    if (smooth) {
+      dry.gain.setTargetAtTime(dryAmt, ctx.currentTime, 0.08);
+      wet.gain.setTargetAtTime(wetAmt, ctx.currentTime, 0.08);
+    } else {
+      dry.gain.value = dryAmt;
+      wet.gain.value = wetAmt;
+    }
   };
-  applyWet(initial);
+  applyWet(initial, false);
 
   return {
     trigger(event, when, _durSec, _params) {
@@ -148,7 +156,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       osc.stop(when + 0.7);
     },
     update(params) {
-      applyWet(params);
+      applyWet(params, true);
     },
     dispose() {
       input.disconnect();

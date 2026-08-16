@@ -16,10 +16,12 @@ interface ParamBase {
   /** One-line explanation surfaced in the control's tooltip/docs. */
   hint?: string;
   /**
-   * Randomize never touches this param. For transport/meta controls (loop,
-   * AutoRandomize itself) that steer playback rather than the material.
+   * A transport/console control that steers playback rather than the
+   * material (loop, AutoRandomize, fade window): randomize never touches it
+   * and A/B morph pins it to A, no lock needed. Still serialized like any
+   * other param — the URL carries it.
    */
-  noRandom?: boolean;
+  control?: boolean;
 }
 
 export interface NumberParam extends ParamBase {
@@ -112,7 +114,7 @@ export function randomizeParams(
 ): ParamValues {
   const out: ParamValues = {};
   for (const spec of specs) {
-    if (locked.has(spec.key) || spec.noRandom) {
+    if (locked.has(spec.key) || spec.control) {
       out[spec.key] = current[spec.key];
       continue;
     }
@@ -148,6 +150,11 @@ export function morphParams(
   for (const spec of specs) {
     const va = a[spec.key] ?? spec.default;
     const vb = b[spec.key] ?? spec.default;
+    /* Transport controls sit the morph out — they hold A's value. */
+    if (spec.control) {
+      out[spec.key] = va;
+      continue;
+    }
     if (spec.kind === 'number') {
       out[spec.key] = snap(
         (va as number) * (1 - t) + (vb as number) * t,

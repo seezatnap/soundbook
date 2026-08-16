@@ -145,20 +145,20 @@ describe('every lab', () => {
         expect(after).toEqual(before);
       });
 
-      it('has 5–9 params (per tab when grouped), stories, docs and a positive cycle', () => {
+      it('has 5–10 params (per tab when grouped), stories, docs and a positive cycle', () => {
         if (lab.paramGroups) {
-          /* A console lab partitions its params into tabs of 5–9 each:
+          /* A console lab partitions its params into tabs of 5–10 each:
              every key in exactly one group, no strays, no dumping ground. */
           const grouped = lab.paramGroups.flatMap((group) => group.keys);
           expect(new Set(grouped).size).toBe(grouped.length);
           expect([...grouped].sort()).toEqual(lab.params.map((p) => p.key).sort());
           for (const group of lab.paramGroups) {
             expect(group.keys.length).toBeGreaterThanOrEqual(5);
-            expect(group.keys.length).toBeLessThanOrEqual(9);
+            expect(group.keys.length).toBeLessThanOrEqual(10);
           }
         } else {
           expect(lab.params.length).toBeGreaterThanOrEqual(5);
-          expect(lab.params.length).toBeLessThanOrEqual(9);
+          expect(lab.params.length).toBeLessThanOrEqual(10);
         }
         expect(lab.stories.length).toBeGreaterThanOrEqual(2);
         expect(lab.docs.length).toBeGreaterThan(100);
@@ -253,6 +253,20 @@ describe('codec hardening', () => {
     /* No locks: the field stays out of the wire format entirely. */
     const bare = await encodeState({ ...state, locked: [] }, lab);
     expect((await decodeState(bare, findLab))!.locked).toBeUndefined();
+    /* Transport controls can't be locked — stale entries are pruned. */
+    const dl = findLab('drone-lab')!;
+    const pruned = await encodeState(
+      {
+        labId: dl.id,
+        version: dl.version,
+        seed: 1,
+        tempo: 120,
+        params: defaultsOf(dl.params),
+        locked: ['loop', 'fadeBeats', 'harmonize'],
+      },
+      dl,
+    );
+    expect((await decodeState(pruned, findLab))!.locked).toEqual(['harmonize']);
   });
 
   it('rejects unknown labs', async () => {

@@ -35,6 +35,11 @@ export interface AudioApi {
   exportWav(cycles: number): Promise<Blob>;
 }
 
+/* Instrument swaps (reseed, lab switch) crossfade instead of cutting. A lab
+   that declares a `fadeBeats` param (DroneLab's Master tab) sets the window
+   in beats; anything else gets this default. */
+const DEFAULT_RETIRE_SEC = 2.5;
+
 export function useAudio(
   lab: LabDefinition,
   params: ParamValues,
@@ -48,6 +53,7 @@ export function useAudio(
   const transportRef = useRef<Transport | null>(null);
   const schedulerRef = useRef<Scheduler | null>(null);
   const instrumentRef = useRef<Instrument | null>(null);
+  const mixRef = useRef<GainNode | null>(null);
   const builtForRef = useRef<string>('');
   const recentRef = useRef<RecentEvent[]>([]);
 
@@ -65,9 +71,42 @@ export function useAudio(
     if (!engine) return;
     const key = `${labRef.current.id}:${seedRef.current}`;
     if (builtForRef.current === key && instrumentRef.current) return;
-    instrumentRef.current?.dispose();
+    /* Retire, don't cut. Each instrument plays into its own mix node, so a
+       reseed lets the old iteration ring out under a fade while the new
+       one fades in on top — a crossfade instead of a hard swap. */
+    const fadeBeats = Number(paramsRef.current.fadeBeats);
+    const fadeSec =
+      Number.isFinite(fadeBeats) && fadeBeats >= 0
+        ? fadeBeats / (tempoRef.current / 60)
+        : DEFAULT_RETIRE_SEC;
+    const now = engine.ctx.currentTime;
+    const old = instrumentRef.current;
+    const oldMix = mixRef.current;
+    if (old && oldMix) {
+      if (fadeSec > 0) {
+        oldMix.gain.setValueAtTime(oldMix.gain.value, now);
+        oldMix.gain.setTargetAtTime(0, now, fadeSec / 3);
+      } else {
+        oldMix.gain.setValueAtTime(0, now);
+      }
+      /* Dispose after the fade plus a margin for reverb tails. */
+      setTimeout(() => {
+        old.dispose();
+        oldMix.disconnect();
+      }, fadeSec * 1000 + 1500);
+    } else {
+      old?.dispose();
+      oldMix?.disconnect();
+    }
+    const mix = engine.ctx.createGain();
+    if (old && fadeSec > 0) {
+      mix.gain.value = 0;
+      mix.gain.setTargetAtTime(1, now, fadeSec / 3);
+    }
+    mix.connect(engine.out);
+    mixRef.current = mix;
     instrumentRef.current = labRef.current.makeInstrument(
-      engine,
+      { ctx: engine.ctx, out: mix, acquireVoice: () => engine.acquireVoice() },
       paramsRef.current,
       seedRef.current,
     );
@@ -138,6 +177,8 @@ export function useAudio(
       schedulerRef.current?.stop();
       instrumentRef.current?.dispose();
       instrumentRef.current = null;
+      mixRef.current?.disconnect();
+      mixRef.current = null;
       builtForRef.current = '';
     },
     [],

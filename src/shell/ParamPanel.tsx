@@ -112,13 +112,17 @@ function ParamRow({
         )}
       </div>
       <div className="sb-params__tools">
-        <IconButton
-          icon={isLocked ? 'lock' : 'unlock'}
-          label={isLocked ? `Unlock ${spec.label}` : `Lock ${spec.label} against randomize and morph`}
-          size="sm"
-          variant={isLocked ? 'accent' : 'default'}
-          onClick={() => onToggleLock(spec.key)}
-        />
+        {/* Transport controls are immune to randomize and morph by
+            definition — a lock would have nothing to hold. */}
+        {!spec.control && (
+          <IconButton
+            icon={isLocked ? 'lock' : 'unlock'}
+            label={isLocked ? `Unlock ${spec.label}` : `Lock ${spec.label} against randomize and morph`}
+            size="sm"
+            variant={isLocked ? 'accent' : 'default'}
+            onClick={() => onToggleLock(spec.key)}
+          />
+        )}
         <IconButton
           icon="refresh"
           label={`Reset ${spec.label} to default`}

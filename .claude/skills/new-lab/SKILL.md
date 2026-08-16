@@ -42,10 +42,12 @@ generates everything else. Work through this checklist in order.
 
 ## 3. Params
 
-- Flat labs: 5–9 params. Console labs: declare `paramGroups` — every key in
-  exactly one group, **each group 5–9 params** (this is how DroneLab carries
-  30). The shell renders one folder tab per group; nothing else changes
-  (locks, randomize, URL, morph all operate on the flat list).
+- Flat labs: 5–10 params. Console labs: declare `paramGroups` — every key in
+  exactly one group, **each group 5–10 params**. The shell renders one folder
+  tab per group; nothing else changes (locks, randomize, URL, morph all
+  operate on the flat list). When transport controls outgrow a musical tab,
+  give them their own group (DroneLab's Controls tab) instead of raising
+  the cap.
 - Layer keys must stay globally unique inside a console lab. When two source
   schemas collide on a key (both the loom and the room own `wet`), re-key
   the colliding param for the console (`loomWet`) and force the shadowed key
@@ -60,8 +62,10 @@ generates everything else. Work through this checklist in order.
   engine-side: the events function must not read them, and `update()` must
   apply them live. Pin that with a test asserting events are equal across
   those params.
-- Params that steer playback rather than material (loop, AutoRandomize) set
-  `noRandom: true` so randomize — manual or automatic — never flips them.
+- Params that steer playback rather than material (loop, AutoRandomize,
+  fade window) set `control: true`: randomize — manual or automatic — never
+  flips them and A/B morph pins them to A, no lock needed. They still
+  serialize into the URL like any param.
 - Param locks are document state: `session.locked` serializes into the URL
   (codec field `k`, validated against the schema on decode) and rides
   undo/redo and published snapshots. Nothing lab-specific to do — but don't

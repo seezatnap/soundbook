@@ -15,8 +15,9 @@
 const SETTLE_MS = 120;
 /** setTargetAtTime constants: ~5τ to land. New room in ~150 ms… */
 const FADE_IN_TAU = 0.03;
-/** …while the old tail breathes out over ~400 ms instead of being cut. */
-const RING_OUT_TAU = 0.08;
+/** …while the old tail breathes out (~1.2 s by default) instead of cutting.
+ * Callers pass a ring-out scaled to the room's own decay for longer tails. */
+const RING_OUT_TAU = 0.25;
 
 export interface SmoothConvolver {
   /** Feed sources here. */
@@ -27,9 +28,10 @@ export interface SmoothConvolver {
    * Ask for the IR identified by `key`; `build` runs only if it is needed.
    * Same key as current: no-op (a pending swap back to it is cancelled).
    * First key ever: built synchronously at full gain. Anything after:
-   * debounced until the key settles, then crossfaded in.
+   * debounced until the key settles, then crossfaded in — the old room
+   * ringing out over `ringOutTau` (seconds, setTargetAtTime constant).
    */
-  set(key: string, build: () => AudioBuffer): void;
+  set(key: string, build: () => AudioBuffer, ringOutTau?: number): void;
   dispose(): void;
 }
 
@@ -56,7 +58,7 @@ export function makeSmoothConvolver(ctx: BaseAudioContext): SmoothConvolver {
   return {
     input,
     output,
-    set(key, build) {
+    set(key, build, ringOutTau = RING_OUT_TAU) {
       if (key === currentKey) {
         cancel();
         return;
@@ -73,7 +75,7 @@ export function makeSmoothConvolver(ctx: BaseAudioContext): SmoothConvolver {
         const next = 1 - active;
         convs[next].buffer = build();
         const now = ctx.currentTime;
-        fades[active].gain.setTargetAtTime(0, now, RING_OUT_TAU);
+        fades[active].gain.setTargetAtTime(0, now, ringOutTau);
         fades[next].gain.setTargetAtTime(1, now, FADE_IN_TAU);
         active = next;
         currentKey = key;

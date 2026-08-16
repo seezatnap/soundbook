@@ -77,8 +77,14 @@ export async function encodeState(state: SessionState, lab: LabDefinition): Prom
     wire.b = sparseB;
   }
   /* Sorted so identical states always emit identical payloads (publish
-     snapshots are content-addressed on the payload string). */
-  if (state.locked && state.locked.length > 0) wire.k = [...state.locked].sort();
+     snapshots are content-addressed on the payload string). Transport
+     controls can't meaningfully be locked, so stale entries are pruned. */
+  if (state.locked && state.locked.length > 0) {
+    const lockable = state.locked.filter((key) =>
+      lab.params.some((spec) => spec.key === key && !spec.control),
+    );
+    if (lockable.length > 0) wire.k = [...lockable].sort();
+  }
   const json = new TextEncoder().encode(JSON.stringify(wire));
   const packed = await deflate(json);
   return `${CODEC_VERSION}.${bytesToBase64Url(packed)}`;
@@ -111,10 +117,12 @@ export async function decodeState(
     };
     if (wire.b) state.b = sanitizeAll(lab.params, { ...defaultsOf(lab.params), ...wire.b });
     if (Array.isArray(wire.k)) {
-      /* Locks are validated like params: unknown keys dropped, dupes folded. */
+      /* Locks are validated like params: unknown keys dropped, dupes folded,
+         unlockable transport controls pruned. */
       const keys = wire.k.filter(
         (key): key is string =>
-          typeof key === 'string' && lab.params.some((spec) => spec.key === key),
+          typeof key === 'string' &&
+          lab.params.some((spec) => spec.key === key && !spec.control),
       );
       if (keys.length > 0) state.locked = [...new Set(keys)].sort();
     }

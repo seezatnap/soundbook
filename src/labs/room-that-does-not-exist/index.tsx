@@ -136,13 +136,22 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
   dry.connect(engine.out);
   wet.connect(engine.out);
 
-  const applyRoom = (params: ParamValues): void => {
-    room.set(irKey(params, seed, ctx.sampleRate), () => buildIr(ctx, params, seed));
-    const wetAmt = params.wet as number;
-    dry.gain.value = Math.cos((wetAmt * Math.PI) / 2) * 0.9;
-    wet.gain.value = Math.sin((wetAmt * Math.PI) / 2) * 1.1;
+  /* Live changes glide; the initial application is exact so offline WAV
+     renders open at the right levels from sample zero. */
+  const glide = (param: AudioParam, target: number, smooth: boolean): void => {
+    if (smooth) param.setTargetAtTime(target, ctx.currentTime, 0.08);
+    else param.value = target;
   };
-  applyRoom(initial);
+
+  const applyRoom = (params: ParamValues, smooth: boolean): void => {
+    /* The old room exits on its own reverberant timescale. */
+    const ringOut = Math.min(0.6, Math.max(0.1, (params.decay as number) * 0.12));
+    room.set(irKey(params, seed, ctx.sampleRate), () => buildIr(ctx, params, seed), ringOut);
+    const wetAmt = params.wet as number;
+    glide(dry.gain, Math.cos((wetAmt * Math.PI) / 2) * 0.9, smooth);
+    glide(wet.gain, Math.sin((wetAmt * Math.PI) / 2) * 1.1, smooth);
+  };
+  applyRoom(initial, false);
 
   return {
     trigger(event, when, _durSec, _params) {
@@ -182,7 +191,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       osc2.stop(when + 0.5);
     },
     update(params) {
-      applyRoom(params);
+      applyRoom(params, true);
     },
     dispose() {
       input.disconnect();
