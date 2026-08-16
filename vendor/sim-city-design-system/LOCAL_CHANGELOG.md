@@ -10,6 +10,18 @@ by the upstream maintainer; leave them in place as history.
 
 <!-- entries below -->
 
+## [LOCAL] 2026-08-16 splitpane-primary-second
+Files:
+- components/SplitPane/SplitPane.tsx
+Reason: Soundbook's parameter panel sits on the right of the workbench and
+must be drag-expandable toward the stage; SplitPane could only size its
+first child.
+Change: new `primary?: 'first' | 'second'` prop (default 'first', existing
+behavior unchanged). With 'second', the size/min/max/collapse apply to the
+second child, the first takes the rest, and drag/arrow/Home/End directions
+follow the divider's motion; aria-controls points at the sized pane.
+Upstream: candidate
+
 ## [UPSTREAMED v1.1.0] 2026-08-14 gravity-icons-iconset
 Files:
 - icons/PixelIcon.tsx

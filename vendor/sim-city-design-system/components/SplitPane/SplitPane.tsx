@@ -9,9 +9,11 @@
  * Shift), Home/End slam to the ends, and Enter toggles a collapse when the
  * caller has named a `collapsedSize` to collapse to.
  *
- * Only the first pane is sized; the second takes whatever is left, which is
- * what lets splits nest — a pane is just a box, and a box can hold another
- * split.
+ * One pane is sized; the other takes whatever is left, which is what lets
+ * splits nest — a pane is just a box, and a box can hold another split. By
+ * default the FIRST child is the sized pane; `primary="second"` sizes the
+ * second child instead (a right/bottom panel that grows toward the start),
+ * with drag, arrows and Home/End all following the divider's motion.
  */
 
 import { Children, useEffect, useId, useRef, useState } from 'react';
@@ -34,28 +36,31 @@ export interface SplitPaneProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'onChange'> {
   /** "horizontal" sets the panes side by side; "vertical" stacks them. */
   orientation?: 'horizontal' | 'vertical';
-  /** Size of the FIRST pane, in px. */
+  /** Which child the size applies to; the other takes the rest. */
+  primary?: 'first' | 'second';
+  /** Size of the primary pane, in px. */
   size?: number;
   defaultSize?: number;
   onSizeChange?: (size: number) => void;
-  /** The first pane never drags or keys below this. */
+  /** The primary pane never drags or keys below this. */
   minSize?: number;
   /** …nor above this. Unset, the limit is the container minus the divider. */
   maxSize?: number;
   /**
-   * Given, Enter (or a double-click) on the divider snaps the first pane to
-   * this size and back — a docked drawer rather than a resized one. The
+   * Given, Enter (or a double-click) on the divider snaps the primary pane
+   * to this size and back — a docked drawer rather than a resized one. The
    * collapse deliberately ignores `minSize`; 0 is a legal parking spot.
    */
   collapsedSize?: number;
   /** Accessible name of the divider. */
   label?: string;
-  /** Exactly two children: the sized pane, then the one that takes the rest. */
+  /** Exactly two children, in layout order; `primary` names the sized one. */
   children: ReactNode;
 }
 
 export function SplitPane({
   orientation = 'horizontal',
+  primary = 'first',
   size: sizeProp,
   defaultSize = 240,
   onSizeChange,
@@ -68,6 +73,9 @@ export function SplitPane({
   ...rest
 }: SplitPaneProps): JSX.Element {
   const horizontal = orientation === 'horizontal';
+  /* With the second child primary, the divider's motion and the sized
+     pane's growth point in opposite directions along the axis. */
+  const sizedSecond = primary === 'second';
   const [size, setSize] = useControllableState(sizeProp, defaultSize, onSizeChange);
   const [dragging, setDragging] = useState(false);
   /** Container extent along the split axis, for the reported aria-valuemax. */
@@ -130,7 +138,8 @@ export function SplitPane({
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const position = horizontal ? event.clientX : event.clientY;
-    setSize(clamp(drag.start + (position - drag.origin)));
+    const delta = position - drag.origin;
+    setSize(clamp(drag.start + (sizedSecond ? -delta : delta)));
   };
 
   const endDrag = (): void => {
@@ -140,12 +149,18 @@ export function SplitPane({
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
     const step = event.shiftKey ? STEP_COARSE : STEP;
-    const grow = horizontal ? 'ArrowRight' : 'ArrowDown';
-    const shrink = horizontal ? 'ArrowLeft' : 'ArrowUp';
+    /* Arrows and Home/End follow the divider: toward the end of the axis
+       grows a first-primary pane and shrinks a second-primary one. */
+    const towardEnd = horizontal ? 'ArrowRight' : 'ArrowDown';
+    const towardStart = horizontal ? 'ArrowLeft' : 'ArrowUp';
+    const grow = sizedSecond ? towardStart : towardEnd;
+    const shrink = sizedSecond ? towardEnd : towardStart;
     if (event.key === grow) setSize(clamp(size + step));
     else if (event.key === shrink) setSize(clamp(size - step));
-    else if (event.key === 'Home') setSize(clamp(minSize));
-    else if (event.key === 'End') setSize(clamp(Number.MAX_SAFE_INTEGER));
+    else if (event.key === 'Home')
+      setSize(sizedSecond ? clamp(Number.MAX_SAFE_INTEGER) : clamp(minSize));
+    else if (event.key === 'End')
+      setSize(sizedSecond ? clamp(minSize) : clamp(Number.MAX_SAFE_INTEGER));
     else if (event.key === 'Enter') toggleCollapse();
     else return;
     event.preventDefault();
@@ -163,6 +178,7 @@ export function SplitPane({
   );
 
   const [first, second] = Children.toArray(children);
+  const sizeStyle = horizontal ? { width: size } : { height: size };
 
   return (
     <div
@@ -171,9 +187,12 @@ export function SplitPane({
       {...rest}
     >
       <div
-        id={paneId}
-        className="sc-splitpane__pane sc-splitpane__pane--first"
-        style={horizontal ? { width: size } : { height: size }}
+        id={sizedSecond ? undefined : paneId}
+        className={cx(
+          'sc-splitpane__pane',
+          sizedSecond ? 'sc-splitpane__pane--rest' : 'sc-splitpane__pane--first',
+        )}
+        style={sizedSecond ? undefined : sizeStyle}
       >
         {first}
       </div>
@@ -197,7 +216,16 @@ export function SplitPane({
       >
         <span className="sc-splitpane__grip" aria-hidden="true" />
       </div>
-      <div className="sc-splitpane__pane sc-splitpane__pane--rest">{second}</div>
+      <div
+        id={sizedSecond ? paneId : undefined}
+        className={cx(
+          'sc-splitpane__pane',
+          sizedSecond ? 'sc-splitpane__pane--first' : 'sc-splitpane__pane--rest',
+        )}
+        style={sizedSecond ? sizeStyle : undefined}
+      >
+        {second}
+      </div>
     </div>
   );
 }
