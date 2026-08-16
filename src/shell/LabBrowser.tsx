@@ -10,6 +10,7 @@ import { IconButton } from '@simcity/components/IconButton';
 import { Panel } from '@simcity/components/Panel';
 import type { LabFamily } from '@/sdk/lab';
 import { FAMILY_LABELS, LABS } from '@/labs/registry';
+import { Visualizer } from '@/shell/Visualizer';
 
 export interface PublishedSnapshot {
   name: string;
@@ -23,6 +24,8 @@ interface LabBrowserProps {
   published: PublishedSnapshot[];
   onOpenSnapshot(snapshot: PublishedSnapshot): void;
   onDeleteSnapshot(snapshot: PublishedSnapshot): void;
+  /** Master-bus analyser for the visualizer; null until audio starts. */
+  analyser: AnalyserNode | null;
 }
 
 /* DroneLab leads; compositions sit at the bottom of the catalogue. */
@@ -41,6 +44,7 @@ export function LabBrowser({
   published,
   onOpenSnapshot,
   onDeleteSnapshot,
+  analyser,
 }: LabBrowserProps): JSX.Element {
   const nodes = useMemo<TreeNode[]>(
     () =>
@@ -68,6 +72,11 @@ export function LabBrowser({
           if (id && !id.startsWith('family:')) onSelect(id);
         }}
       />
+      <div className="sb-browser__viz">
+        <Panel title="VISUALIZER" flush>
+          <Visualizer analyser={analyser} />
+        </Panel>
+      </div>
       <div className="sb-browser__published">
         <Panel title="PUBLISHED" flush>
           {published.length === 0 ? (

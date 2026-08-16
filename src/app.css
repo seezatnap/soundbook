@@ -132,6 +132,24 @@ body {
   min-height: 0;
 }
 
+/* The Geiss corner: a square feedback visualizer docked above PUBLISHED.
+   Fixed 320² render resolution; CSS scales it to the sidebar's width. */
+.sb-browser__viz {
+  flex: none;
+}
+
+.sb-viz {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #000;
+  cursor: pointer;
+  border: 2px solid var(--edge-dark);
+  border-right-color: var(--edge-light);
+  border-bottom-color: var(--edge-light);
+  box-sizing: border-box;
+}
+
 .sb-browser__published {
   flex: none;
   max-height: 40%;

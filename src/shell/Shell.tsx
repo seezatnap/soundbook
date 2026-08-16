@@ -291,6 +291,7 @@ export function Shell(): JSX.Element {
             published={published}
             onOpenSnapshot={onOpenSnapshot}
             onDeleteSnapshot={onDeleteSnapshot}
+            analyser={audio.analyser}
           />
           <div className="sb-main">
             <div className="sb-workbench">
