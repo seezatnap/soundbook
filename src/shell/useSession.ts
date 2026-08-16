@@ -50,6 +50,8 @@ export interface SessionApi {
   selectLab(id: string): void;
   loadStory(story: Story): void;
   toggleLock(key: string): void;
+  /** Bulk lock/unlock — one commit, one undo step (a tab's Lock all). */
+  setLocks(keys: readonly string[], lock: boolean): void;
   randomize(): void;
   setB(b: ParamValues | null): void;
   swapAB(): void;
@@ -222,6 +224,20 @@ export function useSession(): SessionApi {
     [commit],
   );
 
+  const setLocks = useCallback(
+    (keys: readonly string[], lock: boolean): void => {
+      commit((prev) => {
+        const locked = new Set(prev.locked);
+        for (const key of keys) {
+          if (lock) locked.add(key);
+          else locked.delete(key);
+        }
+        return { ...prev, locked };
+      });
+    },
+    [commit],
+  );
+
   const randomize = useCallback((): void => {
     commit((prev) => {
       const target = findLab(prev.labId);
@@ -302,6 +318,7 @@ export function useSession(): SessionApi {
     selectLab,
     loadStory,
     toggleLock,
+    setLocks,
     randomize,
     setB,
     swapAB,

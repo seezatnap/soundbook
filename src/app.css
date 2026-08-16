@@ -249,6 +249,12 @@ body {
   gap: 6px;
 }
 
+/* The whole-tab lock toggle, right-aligned above the rows. */
+.sb-params__groupbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .sb-params__control {
   flex: 1;
   min-width: 0;

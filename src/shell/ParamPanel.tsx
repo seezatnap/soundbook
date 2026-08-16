@@ -8,6 +8,7 @@
  */
 
 import { type JSX } from 'react';
+import { Button } from '@simcity/components/Button';
 import { IconButton } from '@simcity/components/IconButton';
 import { NumberField } from '@simcity/components/NumberField';
 import { Panel } from '@simcity/components/Panel';
@@ -27,6 +28,8 @@ interface ParamPanelProps {
   locked: ReadonlySet<string>;
   onChange(key: string, value: ParamValues[string]): void;
   onToggleLock(key: string): void;
+  /** Bulk lock/unlock for a tab's Lock all button (single undo step). */
+  onSetLocks(keys: readonly string[], lock: boolean): void;
   /** Morphing freezes editing so A stays A while you audition the blend. */
   morphing: boolean;
   /** Keys whose effective value is a true A/B blend — shown as ‹blended›. */
@@ -82,15 +85,31 @@ function ParamRow({
           </div>
         )}
         {spec.kind === 'int' && (
-          <NumberField
-            label={spec.label}
-            value={value as number}
-            min={spec.min}
-            max={spec.max}
-            step={1}
-            onValueChange={(v) => v !== null && onChange(spec.key, Math.round(v))}
-            disabled={morphing}
-          />
+          /* Same compact slider+exact pair as number rows — a column of
+             full-width steppers (the loom's four lengths) reads twice as
+             tall for no extra information. */
+          <div className="sb-params__numberpair">
+            <Slider
+              label={spec.label}
+              min={spec.min}
+              max={spec.max}
+              step={1}
+              value={value as number}
+              onValueChange={(v) => onChange(spec.key, Math.round(v))}
+              showValue
+              disabled={morphing}
+              className="sb-params__slider"
+            />
+            <NumberField
+              value={value as number}
+              min={spec.min}
+              max={spec.max}
+              step={1}
+              onValueChange={(v) => v !== null && onChange(spec.key, Math.round(v))}
+              disabled={morphing}
+              className="sb-params__exact"
+            />
+          </div>
         )}
         {spec.kind === 'select' && (
           <Select
@@ -142,6 +161,7 @@ export function ParamPanel({
   locked,
   onChange,
   onToggleLock,
+  onSetLocks,
   morphing,
   blendedKeys,
 }: ParamPanelProps): JSX.Element {
@@ -177,14 +197,32 @@ export function ParamPanel({
               </Tab>
             ))}
           </TabList>
-          {groups.map((group) => (
-            <TabPanel key={group.id} value={group.id} className="sb-params__tabpanel">
-              <div className="sb-params__body">
-                {morphCallout}
-                {rows(group.keys.flatMap((key) => byKey.get(key) ?? []))}
-              </div>
-            </TabPanel>
-          ))}
+          {groups.map((group) => {
+            const groupSpecs = group.keys.flatMap((key) => byKey.get(key) ?? []);
+            /* One button pins or frees a whole tab. Transport controls have
+               nothing to lock, so their tab carries no button. */
+            const lockable = groupSpecs.filter((spec) => !spec.control).map((spec) => spec.key);
+            const allLocked = lockable.length > 0 && lockable.every((key) => locked.has(key));
+            return (
+              <TabPanel key={group.id} value={group.id} className="sb-params__tabpanel">
+                <div className="sb-params__body">
+                  {morphCallout}
+                  {lockable.length > 0 && (
+                    <div className="sb-params__groupbar">
+                      <Button
+                        icon={allLocked ? 'unlock' : 'lock'}
+                        size="sm"
+                        onClick={() => onSetLocks(lockable, !allLocked)}
+                      >
+                        {allLocked ? 'UNLOCK ALL' : 'LOCK ALL'}
+                      </Button>
+                    </div>
+                  )}
+                  {rows(groupSpecs)}
+                </div>
+              </TabPanel>
+            );
+          })}
         </Tabs>
       </Panel>
     );

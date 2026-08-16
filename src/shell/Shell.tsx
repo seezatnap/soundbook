@@ -322,6 +322,7 @@ export function Shell(): JSX.Element {
                   locked={locked}
                   onChange={s.setParam}
                   onToggleLock={s.toggleLock}
+                  onSetLocks={s.setLocks}
                   morphing={morph > 0}
                   blendedKeys={blendedKeys}
                 />
