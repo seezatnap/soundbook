@@ -529,7 +529,9 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
 
 const LANES = [
   { track: 'stars', label: 'LOOM', frac: 0.46, lo: 38, hi: 104 },
-  { track: 'sparks', label: 'SPARKS', frac: 0.32, lo: 40, hi: 74 },
+  /* lo reaches the bass voice's floor (~MIDI 21) so a bass-voiced Space
+     layer still draws inside its lane instead of pinning to the bottom. */
+  { track: 'sparks', label: 'SPARKS', frac: 0.32, lo: 21, hi: 74 },
   { track: 'drone', label: 'DRONE', frac: 0.22, lo: 14, hi: 34 },
 ] as const;
 

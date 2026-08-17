@@ -19,9 +19,41 @@ const CYCLE_BEATS = 8;
 const SLOTS = 16; // half-beat grid
 const ROOT = 50;
 
+/*
+ * What excites the room. Fixed registers so the voices are the same music
+ * at different depths: sparks as published, embers one octave down with a
+ * warmer pluck, deep bass an octave and a fifth down (~37–123 Hz) as slow
+ * sine strikes — low enough to be structural, high enough that ordinary
+ * speakers still carry the fundamental. The synthesis stays deliberately
+ * plain — the room is the instrument.
+ */
+const VOICES: Record<
+  string,
+  {
+    root: number;
+    wave: OscillatorType;
+    wave2: OscillatorType;
+    mix2: number;
+    attack: number;
+    peak: number;
+    tau: number;
+    tail: number;
+  }
+> = {
+  spark: { root: ROOT, wave: 'triangle', wave2: 'sine', mix2: 0.3, attack: 0.004, peak: 0.6, tau: 0.07, tail: 0.5 },
+  mid: { root: ROOT - 12, wave: 'triangle', wave2: 'sine', mix2: 0.25, attack: 0.006, peak: 0.7, tau: 0.16, tail: 1.2 },
+  bass: { root: ROOT - 19, wave: 'sine', wave2: 'triangle', mix2: 0.35, attack: 0.012, peak: 0.7, tau: 0.35, tail: 2.8 },
+};
+
+function voiceOf(params: ParamValues): string {
+  return typeof params.voice === 'string' && params.voice in VOICES ? params.voice : 'spark';
+}
+
 function labEvents(params: ParamValues, seed: number, from: number, to: number): NoteEvent[] {
   const events: NoteEvent[] = [];
   const sources = params.sources as number;
+  const voice = voiceOf(params);
+  const root = VOICES[voice].root;
   const scale = SCALES.pentatonic;
   const firstCycle = Math.floor(from / CYCLE_BEATS);
   const lastCycle = Math.ceil(to / CYCLE_BEATS);
@@ -38,20 +70,20 @@ function labEvents(params: ParamValues, seed: number, from: number, to: number):
       if (beat < from || beat >= to) continue;
       const pitchRng = rngFor(seed, 'pitch', c, slot);
       const degree = pitchRng.int(10) - 2;
-      const midi = scaleNote(ROOT, scale, degree);
+      const midi = scaleNote(root, scale, degree);
       events.push({
         id: `spark:${c}:${slot}`,
         beat,
         dur: 0.5,
         freq: 440 * Math.pow(2, (midi - 69) / 12),
         gain: 0.5 + pitchRng.range(0, 0.25),
-        voice: 'spark',
+        voice,
         provenance: [
           {
             rule: `sparse(${sources}/16)`,
             detail: `cycle ${c}: seeded shuffle placed a spark at half-beat ${slot}`,
           },
-          { rule: 'pitch(seed)', detail: `pentatonic degree ${degree} around MIDI ${ROOT}` },
+          { rule: 'pitch(seed)', detail: `pentatonic degree ${degree} around MIDI ${root}` },
           {
             rule: 'room(seed)',
             detail: 'every spark excites the same impossible impulse response',
@@ -157,19 +189,24 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     trigger(event, when, _durSec, _params) {
       const release = engine.acquireVoice();
       if (!release) return;
-      /* The source is deliberately plain — the room is the instrument. */
+      /* Two plain oscillators shaped per voice — bright pluck, warm ember
+         or slow bass strike; the room does the rest. */
+      const shape = VOICES[event.voice] ?? VOICES.spark;
       const osc = ctx.createOscillator();
-      osc.type = 'triangle';
+      osc.type = shape.wave;
       osc.frequency.value = event.freq;
       const osc2 = ctx.createOscillator();
-      osc2.type = 'sine';
+      osc2.type = shape.wave2;
       osc2.frequency.value = event.freq * 2;
       const env = ctx.createGain();
       env.gain.setValueAtTime(0, when);
-      env.gain.linearRampToValueAtTime(event.gain * 0.6, when + 0.004);
-      env.gain.setTargetAtTime(0, when + 0.01, 0.07);
+      env.gain.linearRampToValueAtTime(event.gain * shape.peak, when + shape.attack);
+      /* The decay must start after the attack ramp lands — overlapping
+         automation is a click per strike. attack + 6ms puts the spark's
+         hold at exactly its published 10ms. */
+      env.gain.setTargetAtTime(0, when + shape.attack + 0.006, shape.tau);
       const o2gain = ctx.createGain();
-      o2gain.gain.value = 0.3;
+      o2gain.gain.value = shape.mix2;
       osc.connect(env);
       osc2.connect(o2gain);
       o2gain.connect(env);
@@ -187,8 +224,8 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
       osc2.onended = done;
       osc.start(when);
       osc2.start(when);
-      osc.stop(when + 0.5);
-      osc2.stop(when + 0.5);
+      osc.stop(when + shape.tail);
+      osc2.stop(when + shape.tail);
     },
     update(params) {
       applyRoom(params, true);
@@ -302,11 +339,23 @@ function Stage({ params, recent, onInspect, events }: StageProps): JSX.Element {
 
 export const roomThatDoesNotExist = defineLab({
   id: 'room-that-does-not-exist',
-  version: 1,
+  version: 2,
   title: 'A Room That Does Not Exist',
   family: 'space',
   question: 'What does a space sound like when its geometry could never be built?',
   params: [
+    {
+      kind: 'select',
+      key: 'voice',
+      label: 'Instrument',
+      options: [
+        { value: 'spark', label: 'Sparks (bright)' },
+        { value: 'mid', label: 'Embers (mid)' },
+        { value: 'bass', label: 'Deep bass' },
+      ],
+      default: 'spark',
+      hint: 'What excites the room: the published bright sparks, warm embers one octave down, or deep bass strikes an octave and a fifth down.',
+    },
     { kind: 'number', key: 'size', label: 'Room size', min: 1, max: 40, step: 0.5, default: 9, unit: 'm', hint: 'Mean free path between reflections.' },
     { kind: 'number', key: 'decay', label: 'Reverb time', min: 0.3, max: 10, step: 0.1, default: 4, unit: 's', hint: 'How long the tail survives.' },
     { kind: 'number', key: 'damping', label: 'Damping', min: 0, max: 1, step: 0.01, default: 0.4, hint: 'Soft walls eat the treble first.' },
@@ -346,6 +395,12 @@ export const roomThatDoesNotExist = defineLab({
       seed: 3,
       params: { size: 1, decay: 9, impossibility: 0.5, damping: 0.7, wet: 0.7 },
     },
+    {
+      name: 'The foundation',
+      note: 'Deep bass strikes blooming through a thirty-meter vault — the floor of the impossible.',
+      seed: 21,
+      params: { voice: 'bass', size: 30, decay: 7, impossibility: 0.6, wet: 0.8, sources: 2 },
+    },
   ],
   docs: `A convolution reverb is just a recording of a room's answer to a click.
 This lab never records one — it writes the answer directly, from the seed:
@@ -356,5 +411,13 @@ A real room's tail can only decay. The impossibility knob mixes in two
 violations: a Gaussian bloom (the room answers louder a moment after you
 ask) and a time-reversed component (the tail arrives before it leaves).
 Because the IR is pure arithmetic on the seed, this impossible place is
-exactly reproducible — the same URL opens onto the same nowhere.`,
+exactly reproducible — the same URL opens onto the same nowhere.
+
+The instrument selector changes what asks the question. All three voices
+play the same seeded pattern at different depths: the published bright
+sparks; embers, one octave down with a warmer, longer pluck; and deep
+bass, an octave and a fifth down — low enough that the room inflates its
+tails into something structural, high enough that ordinary speakers still
+carry the fundamental. Timing, placement and dynamics never change — only
+the depth of the voice the room answers.`,
 });
