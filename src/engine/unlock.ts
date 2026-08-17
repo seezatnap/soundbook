@@ -18,6 +18,24 @@ const SILENT_WAV =
 
 let mediaKeepAlive: HTMLAudioElement | null = null;
 
+/*
+ * iOS 17+ Audio Session API: declare media-playback semantics so CarPlay
+ * and the lock screen treat this session as music rather than UI sounds —
+ * the playback category gets the media route's buffering instead of the
+ * chatty low-latency one. Feature-detected; a no-op everywhere else.
+ */
+function claimPlaybackSession(): void {
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session) {
+    try {
+      session.type = 'playback';
+    } catch {
+      /* Older WebKit shapes of the experiment; the media element still
+         carries the category claim. */
+    }
+  }
+}
+
 function claimMediaChannel(): void {
   if (typeof Audio === 'undefined') return;
   try {
@@ -71,11 +89,15 @@ function hookRecovery(): void {
   });
   window.addEventListener('focus', recoverAudio);
   window.addEventListener('pageshow', recoverAudio);
+  /* Route changes (CarPlay connecting, headphones in or out) can leave the
+     context suspended or the keep-alive paused without any new gesture. */
+  navigator.mediaDevices?.addEventListener?.('devicechange', recoverAudio);
 }
 
 /** Call directly from a user gesture, before any await. */
 export function unlockAudio(ctx: AudioContext): void {
   /* Synchronously, while the gesture's user activation still stands. */
+  claimPlaybackSession();
   claimMediaChannel();
   recoverCtx = ctx;
   void ctx

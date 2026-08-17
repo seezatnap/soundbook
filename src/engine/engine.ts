@@ -18,7 +18,13 @@ export class Engine implements EngineFacade {
   private readonly limiter: DynamicsCompressorNode;
 
   constructor() {
-    this.ctx = new AudioContext({ latencyHint: 'interactive' });
+    /* 'playback' asks the OS for generous hardware buffers. 'interactive'
+       buffers are small enough that constrained routes — CarPlay's AAC
+       re-encode, Bluetooth — miss render deadlines and underrun into pops
+       and crackle. Nothing here is a live-played instrument, so the extra
+       output latency is invisible in use while the samples themselves are
+       bit-identical. */
+    this.ctx = new AudioContext({ latencyHint: 'playback' });
     this.out = this.ctx.createGain();
     this.out.gain.value = 0.9;
 
