@@ -126,11 +126,14 @@ function makeInstrument(engine: EngineFacade, _initial: ParamValues): Instrument
       mod.stop(when + 0.6);
     },
     update() {},
+    retune() {
+      /* The seed only reaches the events, never the graph. */
+    },
     dispose() {},
   };
 }
 
-function Stage({ params, beat, events, recent, onInspect }: StageProps): JSX.Element {
+function Stage({ params, beat, getBeat, events, recent, onInspect }: StageProps): JSX.Element {
   const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
     g.fillStyle = pal.faceSunken;
     g.fillRect(0, 0, w, h);
@@ -212,7 +215,8 @@ function Stage({ params, beat, events, recent, onInspect }: StageProps): JSX.Ele
 
     /* Playhead sweep. */
     const cycleBeats = steps * STEP_BEATS;
-    const pos = ((beat % cycleBeats) + cycleBeats) % cycleBeats;
+    const liveBeat = getBeat?.() ?? beat;
+    const pos = ((liveBeat % cycleBeats) + cycleBeats) % cycleBeats;
     const pa = (pos / cycleBeats) * Math.PI * 2 - Math.PI / 2;
     g.strokeStyle = pal.warn;
     g.lineWidth = 1;

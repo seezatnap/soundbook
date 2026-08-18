@@ -93,9 +93,9 @@ generates everything else. Work through this checklist in order.
   `ConvolverNode.buffer` directly resets the node and cuts the whole tail,
   so an A/B scrub interpolating room params silences the reverb every tick.
   The smooth convolver debounces rebuilds until the key settles and
-  crossfades the new room in while the old tail rings out. A convolver whose
-  IR is fixed for the instrument's lifetime (the loom's private chamber) can
-  stay plain.
+  crossfades the new room in while the old tail rings out. In practice
+  every seeded convolver is live-changing (seeds change on reseed via
+  retune), so plain ConvolverNodes have no place in instruments.
 
 ## 5. Piece vs. loop
 
@@ -114,8 +114,29 @@ generates everything else. Work through this checklist in order.
   timeline stages, seeks (`onSeek`). Wrap the playhead (`beat % total`) for
   looping labs and seek within the current pass so the transport never jumps
   backward.
+- Playheads read `getBeat?.() ?? beat` inside the draw callback — the
+  `beat` prop is quarter-beat quantized so React renders stay coarse.
+- A stage that draws a full piece MUST: render the document's marks through
+  `makeLayerCache` (blit per frame, redraw per document change); compute
+  its score with `useThrottledMemo` keyed on a fingerprint of ONLY the
+  params the events read (never the whole params object — a level or
+  transport drag must recompute nothing); and let full-window sweeps hit a
+  per-input cache when a consensus/election needs the same events.
 
-## 7. Checks
+## 7. Performance rules (audio memory is special)
+
+- Chrome pins every AudioNode wrapper — and transitively its buffers —
+  while the AudioContext is running; disposal alone does not release them
+  until playback stops. NEVER churn persistent nodes: implement
+  `retune(seed)` on the instrument so the shell's two pooled instruments
+  swap IRs on existing nodes instead of being rebuilt per reseed.
+- Any live-changing IR goes through `makeSmoothConvolver`; fixed IRs may
+  not exist — seeds change on reseed, so seeded IRs are live-changing.
+- `buildIr` results are cached by input; share IRs rather than rebuilding.
+- Never reassign `canvas.width` to an unchanged size — it reallocates the
+  backing store. `makeLayerCache` handles this; hand-rolled canvases must.
+
+## 8. Checks
 
 `npm test && npm run typecheck && npm run build` — all three, always. The
 determinism suite picks the lab up from the registry with zero test code;

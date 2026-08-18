@@ -4,7 +4,7 @@
  * match the chrome in both variants.
  */
 
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useReducer, useRef, type RefObject } from 'react';
 
 export interface StagePalette {
   ink: string;
@@ -46,6 +46,106 @@ export type StageDraw = (
   palette: StagePalette,
   nowMs: number,
 ) => void;
+
+/**
+ * useMemo with a rate limit. A timeline stage's full-piece score is pure
+ * display: recomputing it on every tick of a slider drag (~60 Hz) allocates
+ * hundreds of megabytes a second for pictures nobody sees. This recomputes
+ * immediately on the first change, then at most once per `ms`, with a
+ * trailing update so the settled value is always exact. Purely visual —
+ * the audio path computes its own small windows and never goes stale.
+ */
+export function useThrottledMemo<T>(compute: () => T, deps: readonly unknown[], ms: number): T {
+  const ref = useRef<{
+    value: T;
+    deps: readonly unknown[];
+    last: number;
+    timer: ReturnType<typeof setTimeout> | null;
+  } | null>(null);
+  const [, force] = useReducer((x: number) => x + 1, 0);
+
+  const stale =
+    ref.current === null ||
+    ref.current.deps.length !== deps.length ||
+    !deps.every((dep, i) => ref.current!.deps[i] === dep);
+
+  if (ref.current === null) {
+    ref.current = { value: compute(), deps, last: performance.now(), timer: null };
+  } else if (stale) {
+    const now = performance.now();
+    if (now - ref.current.last >= ms) {
+      ref.current.value = compute();
+      ref.current.deps = deps;
+      ref.current.last = now;
+    } else if (ref.current.timer === null) {
+      /* Trailing edge: re-render once the window opens; that render sees
+         the latest deps and computes with them. */
+      ref.current.timer = setTimeout(
+        () => {
+          if (ref.current) ref.current.timer = null;
+          force();
+        },
+        ms - (now - ref.current.last) + 5,
+      );
+    }
+  }
+
+  useEffect(
+    () => () => {
+      if (ref.current?.timer) clearTimeout(ref.current.timer);
+    },
+    [],
+  );
+
+  return ref.current.value;
+}
+
+/**
+ * A cached canvas layer for the static part of a stage. Timeline stages
+ * draw thousands of marks that only change when the document changes;
+ * redrawing them at animation rate is most of a stage's CPU. The returned
+ * function hands back a bitmap redrawn only when size, pixel density or any
+ * dep (compared by identity) changes — blit it, then draw the playhead and
+ * flashes on top.
+ */
+export function makeLayerCache(): (
+  width: number,
+  height: number,
+  dpr: number,
+  deps: readonly unknown[],
+  draw: (g: CanvasRenderingContext2D, width: number, height: number) => void,
+) => HTMLCanvasElement {
+  let canvas: HTMLCanvasElement | null = null;
+  let key: unknown[] | null = null;
+  return (width, height, dpr, deps, draw) => {
+    const fresh =
+      canvas !== null &&
+      key !== null &&
+      key.length === deps.length + 3 &&
+      key[0] === width &&
+      key[1] === height &&
+      key[2] === dpr &&
+      deps.every((dep, i) => key![i + 3] === dep);
+    if (fresh) return canvas!;
+    canvas = canvas ?? document.createElement('canvas');
+    const pw = Math.max(1, Math.round(width * dpr));
+    const ph = Math.max(1, Math.round(height * dpr));
+    /* Only touch the dimensions when they actually changed — assigning
+       canvas.width discards and reallocates the multi-MB backing store. */
+    const g = canvas.getContext('2d')!;
+    if (canvas.width !== pw || canvas.height !== ph) {
+      canvas.width = pw;
+      canvas.height = ph;
+    } else {
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, pw, ph);
+    }
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw(g, width, height);
+    key = [width, height, dpr, ...deps];
+    return canvas;
+  };
+}
 
 /**
  * Returns a ref for a <canvas>; `draw` runs every animation frame with the

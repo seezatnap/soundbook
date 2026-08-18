@@ -7,7 +7,7 @@
  * are identical either way.
  */
 
-import { type JSX } from 'react';
+import { memo, type JSX } from 'react';
 import { Button } from '@simcity/components/Button';
 import { IconButton } from '@simcity/components/IconButton';
 import { NumberField } from '@simcity/components/NumberField';
@@ -46,7 +46,8 @@ interface ParamRowProps {
   onToggleLock(key: string): void;
 }
 
-function ParamRow({
+/* Memoized so dragging one slider re-renders one row, not the whole tab. */
+const ParamRow = memo(function ParamRow({
   spec,
   value,
   isLocked,
@@ -152,7 +153,7 @@ function ParamRow({
       </div>
     </div>
   );
-}
+});
 
 export function ParamPanel({
   specs,

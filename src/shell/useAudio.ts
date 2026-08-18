@@ -53,9 +53,20 @@ export function useAudio(
   const engineRef = useRef<Engine | null>(null);
   const transportRef = useRef<Transport | null>(null);
   const schedulerRef = useRef<Scheduler | null>(null);
-  const instrumentRef = useRef<Instrument | null>(null);
-  const mixRef = useRef<GainNode | null>(null);
-  const builtForRef = useRef<string>('');
+  /*
+   * Two instrument slots, crossfaded on reseed. Chrome pins every
+   * AudioNode wrapper (and, transitively, its buffers) while the context
+   * runs, so building a fresh instrument per reseed leaks native memory
+   * until playback stops. Labs whose instruments implement retune() keep
+   * these two forever: the spare adopts the new seed in place and fades
+   * in. Labs without retune fall back to build-and-retire.
+   */
+  const slotsRef = useRef<Array<{ instrument: Instrument | null; mix: GainNode | null; seed: number }>>([
+    { instrument: null, mix: null, seed: 0 },
+    { instrument: null, mix: null, seed: 0 },
+  ]);
+  const activeSlotRef = useRef(0);
+  const builtLabRef = useRef<string>('');
   const recentRef = useRef<RecentEvent[]>([]);
 
   const labRef = useRef(lab);
@@ -70,48 +81,92 @@ export function useAudio(
   const rebuildInstrument = useCallback((): void => {
     const engine = engineRef.current;
     if (!engine) return;
-    const key = `${labRef.current.id}:${seedRef.current}`;
-    if (builtForRef.current === key && instrumentRef.current) return;
-    /* Retire, don't cut. Each instrument plays into its own mix node, so a
-       reseed lets the old iteration ring out under a fade while the new
-       one fades in on top — a crossfade instead of a hard swap. */
+    const lab = labRef.current;
+    const seed = seedRef.current;
+    const slots = slotsRef.current;
+    const active = slots[activeSlotRef.current];
+    const sameLab = builtLabRef.current === lab.id;
+    if (sameLab && active.instrument && active.seed === seed) return;
+
     const fadeBeats = Number(paramsRef.current.fadeBeats);
     const fadeSec =
       Number.isFinite(fadeBeats) && fadeBeats >= 0
         ? fadeBeats / (tempoRef.current / 60)
         : DEFAULT_RETIRE_SEC;
     const now = engine.ctx.currentTime;
-    const old = instrumentRef.current;
-    const oldMix = mixRef.current;
-    if (old && oldMix) {
+    const buildInto = (slot: (typeof slots)[number]): void => {
+      const mix = slot.mix ?? engine.ctx.createGain();
+      if (!slot.mix) mix.connect(engine.out);
+      slot.mix = mix;
+      slot.instrument = lab.makeInstrument(
+        { ctx: engine.ctx, out: mix, acquireVoice: () => engine.acquireVoice() },
+        paramsRef.current,
+        seed,
+      );
+      slot.seed = seed;
+    };
+
+    if (sameLab && active.instrument && active.mix) {
+      const spareIdx = 1 - activeSlotRef.current;
+      const spare = slots[spareIdx];
+      if (active.instrument.retune) {
+        /* Reseed in place: the spare adopts the new seed on its existing
+           nodes (first reseed ever builds it — the population is then
+           fixed), syncs params, and the two mixes crossfade. Nothing is
+           discarded, so nothing accumulates. */
+        if (spare.instrument) {
+          spare.instrument.retune!(seed);
+          spare.instrument.update(paramsRef.current);
+          spare.seed = seed;
+        } else {
+          buildInto(spare);
+        }
+        if (fadeSec > 0) {
+          active.mix.gain.setValueAtTime(active.mix.gain.value, now);
+          active.mix.gain.setTargetAtTime(0, now, fadeSec / 3);
+          spare.mix!.gain.setValueAtTime(spare.mix!.gain.value, now);
+          spare.mix!.gain.setTargetAtTime(1, now, fadeSec / 3);
+        } else {
+          active.mix.gain.setValueAtTime(0, now);
+          spare.mix!.gain.setValueAtTime(1, now);
+        }
+        activeSlotRef.current = spareIdx;
+        return;
+      }
+      /* Fallback for instruments that cannot retune: retire under a fade. */
+      const old = active.instrument;
+      const oldMix = active.mix;
       if (fadeSec > 0) {
         oldMix.gain.setValueAtTime(oldMix.gain.value, now);
         oldMix.gain.setTargetAtTime(0, now, fadeSec / 3);
       } else {
         oldMix.gain.setValueAtTime(0, now);
       }
-      /* Dispose after the fade plus a margin for reverb tails. */
       setTimeout(() => {
         old.dispose();
         oldMix.disconnect();
       }, fadeSec * 1000 + 1500);
-    } else {
-      old?.dispose();
-      oldMix?.disconnect();
+      active.instrument = null;
+      active.mix = null;
+      buildInto(active);
+      if (fadeSec > 0) {
+        active.mix!.gain.value = 0;
+        active.mix!.gain.setTargetAtTime(1, now, fadeSec / 3);
+      }
+      return;
     }
-    const mix = engine.ctx.createGain();
-    if (old && fadeSec > 0) {
-      mix.gain.value = 0;
-      mix.gain.setTargetAtTime(1, now, fadeSec / 3);
+
+    /* Lab switch or first build: hard reset both slots. */
+    for (const slot of slots) {
+      slot.instrument?.dispose();
+      slot.mix?.disconnect();
+      slot.instrument = null;
+      slot.mix = null;
     }
-    mix.connect(engine.out);
-    mixRef.current = mix;
-    instrumentRef.current = labRef.current.makeInstrument(
-      { ctx: engine.ctx, out: mix, acquireVoice: () => engine.acquireVoice() },
-      paramsRef.current,
-      seedRef.current,
-    );
-    builtForRef.current = key;
+    activeSlotRef.current = 0;
+    buildInto(slots[0]);
+    slots[0].mix!.gain.value = 1;
+    builtLabRef.current = lab.id;
   }, []);
 
   const ensureAudio = useCallback((): void => {
@@ -128,7 +183,8 @@ export function useAudio(
       );
       scheduler.setTrigger((event, when) => {
         const bps = transport.tempo / 60;
-        instrumentRef.current?.trigger(event, when, event.dur / bps, paramsRef.current);
+        const slot = slotsRef.current[activeSlotRef.current];
+        slot.instrument?.trigger(event, when, event.dur / bps, paramsRef.current);
       });
       scheduler.onScheduled = (batch) => {
         const ctxNow = engine.ctx.currentTime;
@@ -153,9 +209,10 @@ export function useAudio(
     if (engineRef.current) rebuildInstrument();
   }, [lab, seed, rebuildInstrument]);
 
-  /* Params changed: live-update the instrument. */
+  /* Params changed: live-update the active instrument (the spare syncs
+     right before it fades in on the next reseed). */
   useEffect(() => {
-    instrumentRef.current?.update(params);
+    slotsRef.current[activeSlotRef.current].instrument?.update(params);
   }, [params]);
 
   /* Tempo changed: re-anchor transport, resync scheduler frontier. */
@@ -176,11 +233,13 @@ export function useAudio(
   useEffect(
     () => () => {
       schedulerRef.current?.stop();
-      instrumentRef.current?.dispose();
-      instrumentRef.current = null;
-      mixRef.current?.disconnect();
-      mixRef.current = null;
-      builtForRef.current = '';
+      for (const slot of slotsRef.current) {
+        slot.instrument?.dispose();
+        slot.instrument = null;
+        slot.mix?.disconnect();
+        slot.mix = null;
+      }
+      builtLabRef.current = '';
     },
     [],
   );

@@ -13,6 +13,7 @@ import type { ParamValues } from '@/sdk/params';
 import { rngFor } from '@/sdk/prng';
 import { SCALES, scaleNote } from '@/labs/shared/music';
 import { midiName } from '@/sdk/events';
+import { makeSmoothConvolver } from '@/labs/shared/smooth-convolver';
 import { useStageCanvas } from '@/labs/shared/stage';
 import { buildIr } from '@/labs/room-that-does-not-exist';
 
@@ -134,23 +135,29 @@ function labEvents(params: ParamValues, seed: number, from: number, to: number):
   return events;
 }
 
-function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number): Instrument {
+function makeInstrument(engine: EngineFacade, initial: ParamValues, initialSeed: number): Instrument {
   const ctx = engine.ctx;
+  let seed = initialSeed;
 
-  /* Dry/wet split into the seeded harbor, shared by every plank voice. */
+  /* Dry/wet split into the seeded harbor, shared by every plank voice. A
+     smooth convolver so reseeds crossfade the harbor on existing nodes and
+     a closed wet leaves it dormant. */
   const input = ctx.createGain();
   const dry = ctx.createGain();
   const wetGain = ctx.createGain();
-  const harbor = ctx.createConvolver();
-  harbor.buffer = buildIr(ctx, HARBOR, seed);
+  const harbor = makeSmoothConvolver(ctx);
+  const applyHarbor = (): void =>
+    harbor.set(`harbor|${seed}|${ctx.sampleRate}`, () => buildIr(ctx, HARBOR, seed), 0.3);
+  applyHarbor();
   input.connect(dry);
   dry.connect(engine.out);
-  input.connect(harbor);
-  harbor.connect(wetGain);
+  input.connect(harbor.input);
+  harbor.output.connect(wetGain);
   wetGain.connect(engine.out);
 
   const applyWet = (params: ParamValues): void => {
     const wet = params.wet as number;
+    harbor.bypass(wet <= 0);
     dry.gain.value = Math.cos((wet * Math.PI) / 2) * 0.9;
     wetGain.gain.value = Math.sin((wet * Math.PI) / 2) * 1.1;
   };
@@ -203,16 +210,20 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     update(params) {
       applyWet(params);
     },
+    retune(next) {
+      seed = next;
+      applyHarbor();
+    },
     dispose() {
       input.disconnect();
       dry.disconnect();
-      harbor.disconnect();
+      harbor.dispose();
       wetGain.disconnect();
     },
   };
 }
 
-function Stage({ params, seed, beat, onInspect, events }: StageProps): JSX.Element {
+function Stage({ params, seed, beat, getBeat, onInspect, events }: StageProps): JSX.Element {
   const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
     g.fillStyle = pal.faceSunken;
     g.fillRect(0, 0, w, h);
@@ -220,7 +231,8 @@ function Stage({ params, seed, beat, onInspect, events }: StageProps): JSX.Eleme
     const cycleBeats = length * STEP_BEATS;
     const cycle = Math.max(0, Math.floor(beat / cycleBeats));
     const ship = shipAtCycle(params, seed, cycle);
-    const step = Math.floor(((beat / STEP_BEATS) % length + length) % length);
+    const liveBeat = getBeat?.() ?? beat;
+    const step = Math.floor(((liveBeat / STEP_BEATS) % length + length) % length);
 
     const waterY = h * 0.62;
 

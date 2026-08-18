@@ -35,6 +35,15 @@ export interface Instrument {
   trigger(event: NoteEvent, when: number, durSec: number, params: ParamValues): void;
   /** Live param update for continuous controls (called on every change). */
   update(params: ParamValues): void;
+  /**
+   * Adopt a new session seed in place: rebuild seeded IRs and figures on
+   * the EXISTING nodes. Chrome pins AudioNode wrappers (and their buffers)
+   * while a context is running, so the shell never discards instruments of
+   * labs that implement this — it keeps two and crossfades between them on
+   * reseed, holding the node population constant. An instrument whose
+   * graph ignores the seed implements this as a no-op.
+   */
+  retune?(seed: number): void;
   dispose(): void;
 }
 
@@ -56,8 +65,14 @@ export interface Story {
 export interface StageProps {
   params: ParamValues;
   seed: number;
-  /** Current transport position in beats (updates via rAF while playing). */
+  /**
+   * Current transport position in beats. Quantized to quarter-beats so
+   * React renders stay coarse; draw loops needing a smooth playhead read
+   * `getBeat()` instead.
+   */
   beat: number;
+  /** Live transport position, for reading inside rAF draw callbacks. */
+  getBeat?(): number;
   playing: boolean;
   /** Events for the currently visible cycle, for drawing. */
   events: NoteEvent[];

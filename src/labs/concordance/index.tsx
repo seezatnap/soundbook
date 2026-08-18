@@ -29,7 +29,12 @@ import {
   retuneFreq,
   type ConsensusKey,
 } from '@/labs/shared/harmonize';
-import { useStageCanvas, type StagePalette } from '@/labs/shared/stage';
+import {
+  makeLayerCache,
+  useStageCanvas,
+  useThrottledMemo,
+  type StagePalette,
+} from '@/labs/shared/stage';
 import { oscillatorMicroscope } from '@/labs/oscillator-microscope';
 import { buildIr, roomThatDoesNotExist } from '@/labs/room-that-does-not-exist';
 import { polymeterLoom } from '@/labs/polymeter-loom';
@@ -429,6 +434,10 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument 
     update(params) {
       applyMix(params);
     },
+    retune() {
+      /* The documents' seeds are frozen; the session seed only wobbles
+         event gains. Nothing in the graph depends on it. */
+    },
     dispose() {
       inner.forEach((instrument) => instrument.dispose());
       sendNodes.forEach((node) => node.disconnect());
@@ -495,16 +504,20 @@ const STAR_COLORS: Record<string, keyof StagePalette> = {
   gold: 'warn',
 };
 
-function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): JSX.Element {
-  /* The whole 3-minute score, recomputed only when the document changes. */
-  const score = useMemo(
+function Stage({ params, seed, beat, getBeat, recent, onInspect, onSeek }: StageProps): JSX.Element {
+  /* The whole 3-minute score for display. The documents are frozen, so
+     only the harmonizer console reaches the events — level and wet drags
+     recompute nothing, and keyed changes are throttled below drag rate. */
+  const scoreStamp = JSON.stringify([params.harmonize, params.starsShift, params.transpose]);
+  const score = useThrottledMemo(
     () => pieceEvents(params, seed, 0, TOTAL_BEATS),
-    [params, seed],
+    [scoreStamp, seed],
+    180,
   );
 
+  const staticLayer = useMemo(() => makeLayerCache(), []);
+
   const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
-    g.fillStyle = pal.faceSunken;
-    g.fillRect(0, 0, w, h);
     const boxes = laneBoxes(h);
     const plotW = w - PLOT.left - PLOT.right;
     const xAt = (b: number): number => PLOT.left + (b / TOTAL_BEATS) * plotW;
@@ -516,6 +529,99 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
       rootPc: (((key.rootPc + transpose) % 12) + 12) % 12,
       scaleName: key.scaleName,
     });
+    const dpr = g.canvas.width / Math.max(1, w);
+
+    /* Everything the score writes is drawn once per document/size/palette
+       and blitted; `score` changes identity on any param or seed change,
+       so it keys the cache. Per frame only header, flashes and playhead. */
+    const stat = staticLayer(w, h, dpr, [score, pal], (og) => {
+      og.fillStyle = pal.faceSunken;
+      og.fillRect(0, 0, w, h);
+      og.font = '11px monospace';
+
+      /* Lanes. */
+      for (const box of boxes) {
+        og.strokeStyle = pal.edgeDark;
+        og.lineWidth = 1;
+        og.beginPath();
+        og.moveTo(PLOT.left, Math.round(box.y) + 0.5);
+        og.lineTo(w - PLOT.right, Math.round(box.y) + 0.5);
+        og.stroke();
+        og.fillStyle = pal.inkDim;
+        og.fillText(box.label, PLOT.left + 2, box.y + 11);
+        /* Arrangement envelope, dim, along the lane floor. */
+        const track = TRACKS.find((t) => t.id === box.track);
+        if (track) {
+          og.strokeStyle = pal.edgeLight;
+          og.beginPath();
+          for (let px = 0; px <= plotW; px += 4) {
+            const b = (px / plotW) * TOTAL_BEATS;
+            const level = b < track.enterAt || b >= track.exitAt ? 0 : envAt(track.env, b);
+            const y = box.y + box.h - 2 - level * (box.h * 0.25);
+            if (px === 0) og.moveTo(PLOT.left + px, y);
+            else og.lineTo(PLOT.left + px, y);
+          }
+          og.stroke();
+        }
+      }
+
+      /* Section boundaries. */
+      for (const s of SECTIONS) {
+        const x = Math.round(xAt(s.at)) + 0.5;
+        og.strokeStyle = pal.edgeLight;
+        og.beginPath();
+        og.moveTo(x, PLOT.top);
+        og.lineTo(x, h - PLOT.bottom);
+        og.stroke();
+        og.fillStyle = pal.inkDim;
+        og.fillText(`§${s.numeral} ${s.name.toUpperCase()}`, x + 3, h - PLOT.bottom + 12);
+      }
+
+      /* Minute marks (at the authored 120 BPM). */
+      og.fillStyle = pal.inkDim;
+      for (let b = 0; b <= TOTAL_BEATS; b += 120) {
+        const x = xAt(b);
+        og.fillText(`${Math.floor(b / 120)}:00`, Math.min(x, w - PLOT.right - 24), PLOT.top - 4);
+      }
+
+      /* Events: every mark in the score, with the harmonizer's pull drawn
+         as a tick from where the note arrived to where it now sits. */
+      for (const ev of score) {
+        const pos = eventXY(ev, boxes, w);
+        if (!pos) continue;
+        const track = ev.data?.track as string;
+        const innerVoice = ev.voice.slice(ev.voice.indexOf(':') + 1);
+        const color =
+          track === 'drone'
+            ? pal.accent
+            : track === 'sparks'
+              ? pal.accent2
+              : pal[STAR_COLORS[innerVoice] ?? 'accent2'];
+        const cents = (ev.data?.cents as number) ?? 0;
+        if (amount > 0 && Math.abs(cents) >= 1) {
+          const semisOff = (cents * amount) / 100;
+          const pxPerSemi = (pos.box.h - 8) / (pos.box.hi - pos.box.lo);
+          og.strokeStyle = pal.inkDim;
+          og.beginPath();
+          og.moveTo(pos.x, pos.y + semisOff * pxPerSemi);
+          og.lineTo(pos.x, pos.y);
+          og.stroke();
+        }
+        og.globalAlpha = 0.4 + ev.gain * 0.6;
+        og.fillStyle = color;
+        if (track === 'drone') {
+          const wDur = (ev.dur / TOTAL_BEATS) * plotW;
+          og.fillRect(pos.x, pos.y - 1, Math.max(2, wDur - 1), 3);
+        } else {
+          og.fillRect(pos.x - 1, pos.y - 1, 3, 3);
+        }
+        og.globalAlpha = 1;
+      }
+    });
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(stat, 0, 0);
+    g.restore();
 
     /* Header. */
     g.font = '11px monospace';
@@ -530,85 +636,6 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
       8,
       30,
     );
-
-    /* Lanes. */
-    for (const box of boxes) {
-      g.strokeStyle = pal.edgeDark;
-      g.lineWidth = 1;
-      g.beginPath();
-      g.moveTo(PLOT.left, Math.round(box.y) + 0.5);
-      g.lineTo(w - PLOT.right, Math.round(box.y) + 0.5);
-      g.stroke();
-      g.fillStyle = pal.inkDim;
-      g.fillText(box.label, PLOT.left + 2, box.y + 11);
-      /* Arrangement envelope, dim, along the lane floor. */
-      const track = TRACKS.find((t) => t.id === box.track);
-      if (track) {
-        g.strokeStyle = pal.edgeLight;
-        g.beginPath();
-        for (let px = 0; px <= plotW; px += 4) {
-          const b = (px / plotW) * TOTAL_BEATS;
-          const level = b < track.enterAt || b >= track.exitAt ? 0 : envAt(track.env, b);
-          const y = box.y + box.h - 2 - level * (box.h * 0.25);
-          if (px === 0) g.moveTo(PLOT.left + px, y);
-          else g.lineTo(PLOT.left + px, y);
-        }
-        g.stroke();
-      }
-    }
-
-    /* Section boundaries. */
-    for (const s of SECTIONS) {
-      const x = Math.round(xAt(s.at)) + 0.5;
-      g.strokeStyle = pal.edgeLight;
-      g.beginPath();
-      g.moveTo(x, PLOT.top);
-      g.lineTo(x, h - PLOT.bottom);
-      g.stroke();
-      g.fillStyle = pal.inkDim;
-      g.fillText(`§${s.numeral} ${s.name.toUpperCase()}`, x + 3, h - PLOT.bottom + 12);
-    }
-
-    /* Minute marks (at the authored 120 BPM). */
-    g.fillStyle = pal.inkDim;
-    for (let b = 0; b <= TOTAL_BEATS; b += 120) {
-      const x = xAt(b);
-      g.fillText(`${Math.floor(b / 120)}:00`, Math.min(x, w - PLOT.right - 24), PLOT.top - 4);
-    }
-
-    /* Events: every mark in the score, with the harmonizer's pull drawn as
-       a tick from where the note arrived to where it now sits. */
-    for (const ev of score) {
-      const pos = eventXY(ev, boxes, w);
-      if (!pos) continue;
-      const track = ev.data?.track as string;
-      const innerVoice = ev.voice.slice(ev.voice.indexOf(':') + 1);
-      const color =
-        track === 'drone'
-          ? pal.accent
-          : track === 'sparks'
-            ? pal.accent2
-            : pal[STAR_COLORS[innerVoice] ?? 'accent2'];
-      const cents = (ev.data?.cents as number) ?? 0;
-      if (amount > 0 && Math.abs(cents) >= 1) {
-        const semisOff = (cents * amount) / 100;
-        const pxPerSemi = (pos.box.h - 8) / (pos.box.hi - pos.box.lo);
-        g.strokeStyle = pal.inkDim;
-        g.beginPath();
-        g.moveTo(pos.x, pos.y + semisOff * pxPerSemi);
-        g.lineTo(pos.x, pos.y);
-        g.stroke();
-      }
-      g.globalAlpha = 0.4 + ev.gain * 0.6;
-      g.fillStyle = color;
-      if (track === 'drone') {
-        const wDur = (ev.dur / TOTAL_BEATS) * plotW;
-        g.fillRect(pos.x, pos.y - 1, Math.max(2, wDur - 1), 3);
-      } else {
-        g.fillRect(pos.x - 1, pos.y - 1, 3, 3);
-      }
-      g.globalAlpha = 1;
-    }
 
     /* Flashes on recently performed events. */
     for (const { event, at } of recent) {
@@ -626,7 +653,8 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
     }
 
     /* Playhead. */
-    const x = Math.round(xAt(Math.min(TOTAL_BEATS, Math.max(0, beat)))) + 0.5;
+    const liveBeat = getBeat?.() ?? beat;
+    const x = Math.round(xAt(Math.min(TOTAL_BEATS, Math.max(0, liveBeat)))) + 0.5;
     g.strokeStyle = pal.warn;
     g.beginPath();
     g.moveTo(x, PLOT.top);

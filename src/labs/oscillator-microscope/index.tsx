@@ -133,6 +133,9 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument 
     update() {
       /* Fully event-driven: nothing persistent to retune. */
     },
+    retune() {
+      /* The seed only reaches the events, never the graph. */
+    },
     dispose() {},
   };
 }

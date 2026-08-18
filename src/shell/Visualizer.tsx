@@ -187,8 +187,10 @@ export function Visualizer({ analyser }: { analyser: AnalyserNode | null }): JSX
     let treb = 0;
 
     let palette = readPalette(canvas);
+    let waveRgb = rgb(palette.accent2, [0.44, 0.72, 0.88]);
     const chromeObserver = new MutationObserver(() => {
       palette = readPalette(canvas);
+      waveRgb = rgb(palette.accent2, [0.44, 0.72, 0.88]);
     });
     chromeObserver.observe(document.documentElement, {
       attributes: true,
@@ -202,11 +204,20 @@ export function Visualizer({ analyser }: { analyser: AnalyserNode | null }): JSX
     };
 
     let frame = 0;
+    let quietFrames = 0;
     const t0 = performance.now();
     const loop = (): void => {
       frame = requestAnimationFrame(loop);
-      const now = (performance.now() - t0) / 1000;
       const an = analyserRef.current;
+      /* Before audio ever starts there is nothing to draw: once the trails
+         have long since faded to black, skip the GPU entirely. */
+      if (!an) {
+        quietFrames += 1;
+        if (quietFrames > 240) return;
+      } else {
+        quietFrames = 0;
+      }
+      const now = (performance.now() - t0) / 1000;
       if (an) {
         an.getByteFrequencyData(freq);
         an.getFloatTimeDomainData(time);
@@ -250,7 +261,7 @@ export function Visualizer({ analyser }: { analyser: AnalyserNode | null }): JSX
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
         gl.useProgram(wave);
-        const [r, g, b] = rgb(palette.accent2, [0.44, 0.72, 0.88]);
+        const [r, g, b] = waveRgb;
         const glow = 0.55 + treb * 0.45;
         gl.uniform3f(uWaveColor, r * glow, g * glow, b * glow);
         gl.bindBuffer(gl.ARRAY_BUFFER, waveBuf);

@@ -5,10 +5,11 @@
  * only when the cycle index (or the document) changes.
  */
 
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import type { LabDefinition } from '@/sdk/lab';
 import type { NoteEvent } from '@/sdk/events';
 import type { ParamValues } from '@/sdk/params';
+import { useThrottledMemo } from '@/labs/shared/stage';
 import type { RecentEvent } from '@/shell/useAudio';
 
 interface StageHostProps {
@@ -41,7 +42,11 @@ export function StageHost({
   useEffect(() => {
     let frame = 0;
     const loop = (): void => {
-      setBeat(getBeat());
+      /* Quarter-beat granularity: the React-visible beat only needs to
+         drive the cycle window, so re-render ~8×/s at 120 BPM instead of
+         every frame. Stages draw their playheads from getBeat() live. */
+      const quantized = Math.floor(getBeat() * 4) / 4;
+      setBeat((prev) => (prev === quantized ? prev : quantized));
       frame = requestAnimationFrame(loop);
     };
     frame = requestAnimationFrame(loop);
@@ -60,7 +65,9 @@ export function StageHost({
 
   const cycleBeats = lab.cycleBeats(params);
   const cycleIndex = Math.max(0, Math.floor(beat / cycleBeats));
-  const events = useMemo<NoteEvent[]>(
+  /* Display-only: throttled so a fast slider drag doesn't recompute the
+     window on every tick. The trailing update lands the exact value. */
+  const events = useThrottledMemo<NoteEvent[]>(
     () =>
       lab.events({
         params,
@@ -68,6 +75,7 @@ export function StageHost({
         range: { from: cycleIndex * cycleBeats, to: (cycleIndex + 1) * cycleBeats },
       }),
     [lab, params, seed, cycleIndex, cycleBeats],
+    150,
   );
 
   const Stage = lab.Stage;
@@ -77,6 +85,7 @@ export function StageHost({
         params={params}
         seed={seed}
         beat={beat}
+        getBeat={getBeat}
         playing={playing}
         events={events}
         recent={recentRef.current ?? []}

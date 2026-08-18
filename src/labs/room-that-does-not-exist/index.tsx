@@ -100,11 +100,31 @@ function irKey(params: ParamValues, seed: number, sampleRate: number): string {
   return [seed, params.size, params.decay, params.damping, params.impossibility, sampleRate].join('|');
 }
 
+/*
+ * IRs are pure arithmetic on their inputs, and several consumers routinely
+ * ask for the same one (the sparks' own room and DroneLab's loom send share
+ * an IR every time the Space tab moves). A small cache turns those repeats
+ * into lookups — AudioBuffers are context-free, so live and offline renders
+ * at the same sample rate share entries.
+ */
+const IR_CACHE = new Map<string, AudioBuffer>();
+const IR_CACHE_CAP = 8;
+
 /**
  * Deterministic impossible-room impulse response. Exported so a composition
  * can stand other instruments in the same room this lab's sparks excite.
  */
 export function buildIr(ctx: BaseAudioContext, params: ParamValues, seed: number): AudioBuffer {
+  const key = irKey(params, seed, ctx.sampleRate);
+  const hit = IR_CACHE.get(key);
+  if (hit) return hit;
+  const built = renderIr(ctx, params, seed);
+  IR_CACHE.set(key, built);
+  if (IR_CACHE.size > IR_CACHE_CAP) IR_CACHE.delete(IR_CACHE.keys().next().value!);
+  return built;
+}
+
+function renderIr(ctx: BaseAudioContext, params: ParamValues, seed: number): AudioBuffer {
   const decay = params.decay as number;
   const size = params.size as number;
   const damping = params.damping as number;
@@ -153,8 +173,10 @@ export function buildIr(ctx: BaseAudioContext, params: ParamValues, seed: number
   return buffer;
 }
 
-function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number): Instrument {
+function makeInstrument(engine: EngineFacade, initial: ParamValues, initialSeed: number): Instrument {
   const ctx = engine.ctx;
+  let seed = initialSeed;
+  let lastParams = initial;
   const dry = ctx.createGain();
   const wet = ctx.createGain();
   /* Live room edits (and A/B scrubs interpolating them) must not cut the
@@ -176,10 +198,13 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
   };
 
   const applyRoom = (params: ParamValues, smooth: boolean): void => {
+    lastParams = params;
     /* The old room exits on its own reverberant timescale. */
     const ringOut = Math.min(0.6, Math.max(0.1, (params.decay as number) * 0.12));
     room.set(irKey(params, seed, ctx.sampleRate), () => buildIr(ctx, params, seed), ringOut);
     const wetAmt = params.wet as number;
+    /* At wet 0 the convolution computes inaudible output — unplug it. */
+    room.bypass(wetAmt <= 0);
     glide(dry.gain, Math.cos((wetAmt * Math.PI) / 2) * 0.9, smooth);
     glide(wet.gain, Math.sin((wetAmt * Math.PI) / 2) * 1.1, smooth);
   };
@@ -229,6 +254,12 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     },
     update(params) {
       applyRoom(params, true);
+    },
+    retune(next) {
+      /* New seed, same nodes: the smooth convolver crossfades to the new
+         room's impulse response. */
+      seed = next;
+      applyRoom(lastParams, true);
     },
     dispose() {
       input.disconnect();

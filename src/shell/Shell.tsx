@@ -11,6 +11,7 @@ import { LED, Readout, StatusBar } from '@simcity/components/StatusBar';
 import { useToast } from '@simcity/components/Toast';
 import { hash32 } from '@/sdk/prng';
 import { morphParams } from '@/sdk/params';
+import { useThrottledMemo } from '@/labs/shared/stage';
 import type { NoteEvent } from '@/sdk/events';
 import { useSession } from '@/shell/useSession';
 import { useAudio } from '@/shell/useAudio';
@@ -91,6 +92,11 @@ export function Shell(): JSX.Element {
 
   /* Locks are document state — serialized, published, undoable. */
   const locked = s.session.locked;
+
+  /* SET B reads the params at click time via a ref, so the toolbar's fat
+     tooltip tree does not re-render on every param tick. */
+  const sessionParamsRef = useRef(s.session.params);
+  sessionParamsRef.current = s.session.params;
 
   /* What the ear gets: A, or the A→B blend while morphing. Labs may
      resolve the blend themselves (e.g. averaging waveforms) and report
@@ -174,7 +180,7 @@ export function Shell(): JSX.Element {
     void s.copyLink().then((url) => {
       toast({ title: 'LINK COPIED', description: `${url.length} chars — the URL is the document.` });
     });
-  }, [s, toast]);
+  }, [s.copyLink, toast]);
 
   const onPublish = useCallback((): void => {
     void s.copyLink().then((url) => {
@@ -196,7 +202,7 @@ export function Shell(): JSX.Element {
         description: `${snapshot.name} — content-addressed, immutable, on your local shelf. URL copied.`,
       });
     });
-  }, [s, toast]);
+  }, [s.copyLink, s.lab.title, toast]);
 
   const onOpenSnapshot = useCallback((snap: PublishedSnapshot): void => {
     window.location.hash = snap.payload;
@@ -248,13 +254,14 @@ export function Shell(): JSX.Element {
       setMorph(0);
       toast({ title: 'MORPH APPLIED', description: 'The blend is now A.' });
     }
-  }, [morph, s, effectiveParams, toast]);
+  }, [morph, s.session.b, s.setParams, effectiveParams, toast]);
 
-  /* Current-cycle events for the drawer table (coarse clock is fine). */
+  /* Current-cycle events for the drawer table (coarse clock is fine;
+     throttled so slider drags don't recompute the window per tick). */
   const beatNow = audio.getBeat();
   const cycleBeats = s.lab.cycleBeats(effectiveParams);
   const cycleIndex = Math.max(0, Math.floor(beatNow / cycleBeats));
-  const cycleEvents = useMemo(
+  const cycleEvents = useThrottledMemo(
     () =>
       s.lab.events({
         params: effectiveParams,
@@ -262,69 +269,115 @@ export function Shell(): JSX.Element {
         range: { from: cycleIndex * cycleBeats, to: (cycleIndex + 1) * cycleBeats },
       }),
     [s.lab, effectiveParams, s.session.seed, cycleIndex, cycleBeats],
+    150,
   );
 
   const bar = Math.floor(beatNow / 4) + 1;
   const beatInBar = Math.floor(beatNow % 4) + 1;
 
   /* The same furniture serves both layouts: desktop split panes, or
-     compact slide-in sheets with 20px edge tabs. */
-  const browserEl = (
-    <LabBrowser
-      selectedId={s.lab.id}
-      onSelect={(id) => {
-        audio.stop();
-        s.selectLab(id);
-        if (compact) setSheet('none');
-      }}
-      published={published}
-      onOpenSnapshot={onOpenSnapshot}
-      onDeleteSnapshot={onDeleteSnapshot}
-      analyser={audio.analyser}
-    />
+     compact slide-in sheets with 20px edge tabs. Each element is memoized
+     on exactly what it shows, so the 250ms status tick re-renders the
+     readouts and nothing else — not the tree, not the params, not the
+     drawer table. */
+  const browserEl = useMemo(
+    () => (
+      <LabBrowser
+        selectedId={s.lab.id}
+        onSelect={(id) => {
+          audio.stop();
+          s.selectLab(id);
+          if (compact) setSheet('none');
+        }}
+        published={published}
+        onOpenSnapshot={onOpenSnapshot}
+        onDeleteSnapshot={onDeleteSnapshot}
+        analyser={audio.analyser}
+      />
+    ),
+    [
+      s.lab.id,
+      s.selectLab,
+      audio.stop,
+      audio.analyser,
+      compact,
+      published,
+      onOpenSnapshot,
+      onDeleteSnapshot,
+    ],
   );
-  const stageEl = (
-    <StageHost
-      lab={s.lab}
-      params={effectiveParams}
-      seed={s.session.seed}
-      playing={audio.playing}
-      getBeat={audio.getBeat}
-      analyser={audio.analyser}
-      recentRef={audio.recentRef}
-      onInspect={onInspect}
-      onSeek={audio.seek}
-    />
+  const stageEl = useMemo(
+    () => (
+      <StageHost
+        lab={s.lab}
+        params={effectiveParams}
+        seed={s.session.seed}
+        playing={audio.playing}
+        getBeat={audio.getBeat}
+        analyser={audio.analyser}
+        recentRef={audio.recentRef}
+        onInspect={onInspect}
+        onSeek={audio.seek}
+      />
+    ),
+    [
+      s.lab,
+      effectiveParams,
+      s.session.seed,
+      audio.playing,
+      audio.getBeat,
+      audio.analyser,
+      audio.recentRef,
+      onInspect,
+      audio.seek,
+    ],
   );
-  const paramsEl = (
-    <ParamPanel
-      specs={s.lab.params}
-      groups={s.lab.paramGroups}
-      values={effectiveParams}
-      locked={locked}
-      onChange={s.setParam}
-      onToggleLock={s.toggleLock}
-      onSetLocks={s.setLocks}
-      morphing={morph > 0}
-      blendedKeys={blendedKeys}
-    />
+  const paramsEl = useMemo(
+    () => (
+      <ParamPanel
+        specs={s.lab.params}
+        groups={s.lab.paramGroups}
+        values={effectiveParams}
+        locked={locked}
+        onChange={s.setParam}
+        onToggleLock={s.toggleLock}
+        onSetLocks={s.setLocks}
+        morphing={morph > 0}
+        blendedKeys={blendedKeys}
+      />
+    ),
+    [s.lab, effectiveParams, locked, s.setParam, s.toggleLock, s.setLocks, morph, blendedKeys],
   );
-  const drawerEl = (
-    <Drawer
-      lab={s.lab}
-      session={s.session}
-      events={cycleEvents}
-      inspected={inspected}
-      onInspect={onInspect}
-      onLoadStory={(story) => {
-        s.loadStory(story);
-        toast({ title: `STORY: ${story.name.toUpperCase()}`, description: story.note });
-      }}
-      diagnostics={audio.diagnostics}
-      urlPayload={s.urlPayload}
-      tab={drawerTab}
-      onTab={setDrawerTab}
-    />
+  const drawerEl = useMemo(
+    () => (
+      <Drawer
+        lab={s.lab}
+        session={s.session}
+        events={cycleEvents}
+        inspected={inspected}
+        onInspect={onInspect}
+        onLoadStory={(story) => {
+          s.loadStory(story);
+          toast({ title: `STORY: ${story.name.toUpperCase()}`, description: story.note });
+        }}
+        diagnostics={audio.diagnostics}
+        urlPayload={s.urlPayload}
+        tab={drawerTab}
+        onTab={setDrawerTab}
+      />
+    ),
+    [
+      s.lab,
+      s.session,
+      s.loadStory,
+      s.urlPayload,
+      cycleEvents,
+      inspected,
+      onInspect,
+      audio.diagnostics,
+      drawerTab,
+      toast,
+    ],
   );
 
   return (
@@ -341,37 +394,58 @@ export function Shell(): JSX.Element {
         />
       </header>
 
-      <TransportBar
-        playing={audio.playing}
-        onPlay={audio.play}
-        onStop={audio.stop}
-        onStep={audio.step}
-        onRewind={audio.rewind}
-        tempo={s.session.tempo}
-        onTempo={s.setTempo}
-        seed={s.session.seed}
-        onSeed={s.setSeed}
-        onReseed={s.reseed}
-        onRandomize={s.randomize}
-        canUndo={s.canUndo}
-        canRedo={s.canRedo}
-        onUndo={s.undo}
-        onRedo={s.redo}
-        hasB={s.session.b !== null}
-        morph={morph}
-        onMorph={setMorph}
-        onSetB={() => {
-          s.setB({ ...s.session.params });
-          toast({ title: 'B STORED', description: 'Current parameters parked as morph target.' });
-        }}
-        onSwapAB={s.swapAB}
-        onApplyMorph={onApplyMorph}
-        onCopyLink={onCopyLink}
-        onPublish={onPublish}
-        onExport={onExport}
-        exporting={exporting}
-        compact={compact}
-      />
+      {useMemo(
+        () => (
+          <TransportBar
+            playing={audio.playing}
+            onPlay={audio.play}
+            onStop={audio.stop}
+            onStep={audio.step}
+            onRewind={audio.rewind}
+            tempo={s.session.tempo}
+            onTempo={s.setTempo}
+            seed={s.session.seed}
+            onSeed={s.setSeed}
+            onReseed={s.reseed}
+            onRandomize={s.randomize}
+            canUndo={s.canUndo}
+            canRedo={s.canRedo}
+            onUndo={s.undo}
+            onRedo={s.redo}
+            hasB={s.session.b !== null}
+            morph={morph}
+            onMorph={setMorph}
+            onSetB={() => {
+              s.setB({ ...sessionParamsRef.current });
+              toast({ title: 'B STORED', description: 'Current parameters parked as morph target.' });
+            }}
+            onSwapAB={s.swapAB}
+            onApplyMorph={onApplyMorph}
+            onCopyLink={onCopyLink}
+            onPublish={onPublish}
+            onExport={onExport}
+            exporting={exporting}
+            compact={compact}
+          />
+        ),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [
+          audio.playing,
+          s.session.tempo,
+          s.session.seed,
+          s.session.b,
+          s.canUndo,
+          s.canRedo,
+          morph,
+          onApplyMorph,
+          onCopyLink,
+          onPublish,
+          onExport,
+          exporting,
+          compact,
+          toast,
+        ],
+      )}
 
       <div className="sb-body">
         {compact ? (

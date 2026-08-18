@@ -29,7 +29,12 @@ import {
   type ConsensusKey,
 } from '@/labs/shared/harmonize';
 import { makeSmoothConvolver, type SmoothConvolver } from '@/labs/shared/smooth-convolver';
-import { useStageCanvas, type StagePalette } from '@/labs/shared/stage';
+import {
+  makeLayerCache,
+  useStageCanvas,
+  useThrottledMemo,
+  type StagePalette,
+} from '@/labs/shared/stage';
 import { oscillatorMicroscope } from '@/labs/oscillator-microscope';
 import { buildIr, roomThatDoesNotExist } from '@/labs/room-that-does-not-exist';
 import { polymeterLoom } from '@/labs/polymeter-loom';
@@ -263,18 +268,44 @@ interface ScoreEvent {
   source: NoteEvent;
 }
 
+/*
+ * Full-window layer events, cached per track on exactly their inputs. The
+ * stage's display score and the consensus election both sweep all 360
+ * beats; without this they would each regenerate every layer on every
+ * knob tick. Pure caching: same inputs → same events.
+ */
+const fullTrackCache = new Map<string, { inputs: string; events: NoteEvent[] }>();
+
+function fullTrackEvents(track: TrackSpec, params: ParamValues, seed: number): NoteEvent[] {
+  const slice = sliceFor(track, params);
+  const sub = droneLabSubseed(seed, track.id);
+  const inputs = JSON.stringify([sub, slice]);
+  let entry = fullTrackCache.get(track.id);
+  if (!entry || entry.inputs !== inputs) {
+    entry = {
+      inputs,
+      events: track.lab.events({ params: slice, seed: sub, range: { from: 0, to: TOTAL_BEATS } }),
+    };
+    fullTrackCache.set(track.id, entry);
+  }
+  return entry.events;
+}
+
 /** Raw layer events for one window of the 360-beat track, pre-harmonizer. */
 function scoreEvents(params: ParamValues, seed: number, from: number, to: number): ScoreEvent[] {
   const lo = Math.max(0, from);
   const hi = Math.min(TOTAL_BEATS, to);
   const out: ScoreEvent[] = [];
   if (hi <= lo) return out;
+  const full = lo === 0 && hi === TOTAL_BEATS;
   for (const track of TRACKS) {
-    const events = track.lab.events({
-      params: sliceFor(track, params),
-      seed: droneLabSubseed(seed, track.id),
-      range: { from: lo, to: hi },
-    });
+    const events = full
+      ? fullTrackEvents(track, params, seed)
+      : track.lab.events({
+          params: sliceFor(track, params),
+          seed: droneLabSubseed(seed, track.id),
+          range: { from: lo, to: hi },
+        });
     for (const source of events) {
       out.push({ track, beat: source.beat, dur: source.dur, source });
     }
@@ -286,24 +317,32 @@ function scoreEvents(params: ParamValues, seed: number, from: number, to: number
  * The consensus key is elected from everything the three live layers intend
  * to play across the whole 360 beats. Unlike Concordance, the layers here
  * are editable, so the election is memoized on exactly the inputs it depends
- * on (layer params + derived subseeds) — pure caching, same inputs → same key.
+ * on (layer params + derived subseeds) — pure caching, same inputs → same
+ * key. The full-piece sweep is additionally cached per track, so dragging
+ * one layer's knob regenerates that layer's notes only.
  */
 let consensusCache: { inputs: string; value: ConsensusKey } | null = null;
 
+function consensusNotes(params: ParamValues, seed: number): {
+  inputs: string;
+  notes: Array<{ freq: number; weight: number }>;
+} {
+  const keys: string[] = [];
+  const notes: Array<{ freq: number; weight: number }> = [];
+  for (const track of TRACKS) {
+    const events = fullTrackEvents(track, params, seed);
+    keys.push(fullTrackCache.get(track.id)!.inputs);
+    for (const ev of events) {
+      notes.push({ freq: ev.freq, weight: ev.gain * track.level * ev.dur });
+    }
+  }
+  return { inputs: keys.join('¶'), notes };
+}
+
 export function droneLabConsensus(params: ParamValues, seed: number): ConsensusKey {
-  const inputs = TRACKS.map((track) =>
-    JSON.stringify([droneLabSubseed(seed, track.id), sliceFor(track, params)]),
-  ).join('¶');
+  const { inputs, notes } = consensusNotes(params, seed);
   if (!consensusCache || consensusCache.inputs !== inputs) {
-    consensusCache = {
-      inputs,
-      value: consensusKey(
-        scoreEvents(params, seed, 0, TOTAL_BEATS).map((s) => ({
-          freq: s.source.freq,
-          weight: s.source.gain * s.track.level * s.dur,
-        })),
-      ),
-    };
+    consensusCache = { inputs, value: consensusKey(notes) };
   }
   return consensusCache.value;
 }
@@ -425,9 +464,11 @@ function pieceEvents(params: ParamValues, seed: number, from: number, to: number
  * a frozen document. The loom's send shares the sparks' room: same impulse
  * response, same derived subseed, rebuilt whenever the Space tab changes it.
  */
-function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number): Instrument {
+function makeInstrument(engine: EngineFacade, initial: ParamValues, initialSeed: number): Instrument {
   const ctx = engine.ctx;
-  const sparksSeed = droneLabSubseed(seed, 'sparks');
+  let seed = initialSeed;
+  let sparksSeed = droneLabSubseed(seed, 'sparks');
+  let lastParams = initial;
   const gains = new Map<string, GainNode>();
   const inner = new Map<string, Instrument>();
   const slices = new Map<string, ParamValues>();
@@ -474,6 +515,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
   };
 
   const applyMix = (params: ParamValues, smooth: boolean): void => {
+    lastParams = params;
     for (const track of TRACKS) {
       const slice = sliceFor(track, params);
       slices.set(track.id, slice);
@@ -495,6 +537,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     loomRoom?.set(roomKey, () => buildIr(ctx, space, sparksSeed), ringOut);
     /* Same equal-power law the room lab uses for its own wet knob. */
     const send = params.loomWet as number;
+    loomRoom?.bypass(send <= 0);
     if (loomDry && loomWet) {
       glide(loomDry.gain, Math.cos((send * Math.PI) / 2) * 0.9, smooth);
       glide(loomWet.gain, Math.sin((send * Math.PI) / 2) * 1.1, smooth);
@@ -515,6 +558,16 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     },
     update(params) {
       applyMix(params, true);
+    },
+    retune(next) {
+      /* One master seed rewrites every layer in place: each sub-instrument
+         crossfades its own seeded room, and the shared send follows. */
+      seed = next;
+      sparksSeed = droneLabSubseed(seed, 'sparks');
+      for (const track of TRACKS) {
+        inner.get(track.id)?.retune?.(droneLabSubseed(seed, track.id));
+      }
+      applyMix(lastParams, true);
     },
     dispose() {
       inner.forEach((instrument) => instrument.dispose());
@@ -586,19 +639,30 @@ const STAR_COLORS: Record<string, keyof StagePalette> = {
   gold: 'warn',
 };
 
-function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): JSX.Element {
-  /* One full pass of the loop, recomputed only when the document changes. */
-  const score = useMemo(
+function Stage({ params, seed, beat, getBeat, recent, onInspect, onSeek }: StageProps): JSX.Element {
+  /* One full pass of the loop for display. Keyed on a fingerprint of the
+     params the score actually reads, so dragging a level, wet or transport
+     control recomputes nothing; keyed changes are additionally throttled so
+     a fast pattern-knob drag redraws a few times a second, not sixty. */
+  const scoreStamp = JSON.stringify([
+    params.harmonize,
+    params.transpose,
+    params.starsShift,
+    params.loop,
+    TRACKS.map((track) => sliceFor(track, params)),
+  ]);
+  const score = useThrottledMemo(
     () => pieceEvents(params, seed, 0, TOTAL_BEATS),
-    [params, seed],
+    [scoreStamp, seed],
+    180,
   );
 
   const looping = params.loop as boolean;
-  const pass = Math.max(0, Math.floor(beat / TOTAL_BEATS));
+  const staticLayer = useMemo(() => makeLayerCache(), []);
 
   const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
-    g.fillStyle = pal.faceSunken;
-    g.fillRect(0, 0, w, h);
+    const liveBeat = getBeat?.() ?? beat;
+    const pass = Math.max(0, Math.floor(liveBeat / TOTAL_BEATS));
     const boxes = laneBoxes(h);
     const plotW = w - PLOT.left - PLOT.right;
     const xAt = (b: number): number => PLOT.left + (b / TOTAL_BEATS) * plotW;
@@ -610,8 +674,89 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
       rootPc: (((key.rootPc + transpose) % 12) + 12) % 12,
       scaleName: key.scaleName,
     });
+    const dpr = g.canvas.width / Math.max(1, w);
 
-    /* Header. */
+    /* Everything the document writes — lanes, marks, ticks — is drawn once
+       per document/size/palette and blitted; `score` changes identity on
+       any param or seed change, so it keys the cache. Per frame only the
+       header, flashes and playhead are live. */
+    const stat = staticLayer(w, h, dpr, [score, pal], (og) => {
+      og.fillStyle = pal.faceSunken;
+      og.fillRect(0, 0, w, h);
+      og.font = '11px monospace';
+
+      /* Lanes, with the flat plateau level along each floor. */
+      for (const box of boxes) {
+        og.strokeStyle = pal.edgeDark;
+        og.lineWidth = 1;
+        og.beginPath();
+        og.moveTo(PLOT.left, Math.round(box.y) + 0.5);
+        og.lineTo(w - PLOT.right, Math.round(box.y) + 0.5);
+        og.stroke();
+        og.fillStyle = pal.inkDim;
+        og.fillText(box.label, PLOT.left + 2, box.y + 11);
+        const track = TRACKS.find((t) => t.id === box.track);
+        if (track) {
+          const y = box.y + box.h - 2 - track.level * (box.h * 0.25);
+          og.strokeStyle = pal.edgeLight;
+          og.beginPath();
+          og.moveTo(PLOT.left, y);
+          og.lineTo(w - PLOT.right, y);
+          og.stroke();
+        }
+      }
+
+      /* Minute marks (at the authored 120 BPM). */
+      og.fillStyle = pal.inkDim;
+      for (let b = 0; b <= TOTAL_BEATS; b += 120) {
+        const x = xAt(b);
+        og.fillText(`${Math.floor(b / 120)}:00`, Math.min(x, w - PLOT.right - 24), PLOT.top - 4);
+      }
+      og.fillText(
+        looping ? '↻ WRAPS TO 0:00' : 'ENDS — LOOP IS OFF',
+        w - PLOT.right - 110,
+        h - PLOT.bottom + 12,
+      );
+
+      /* Events: one full pass, with the harmonizer's pull drawn as a tick. */
+      for (const ev of score) {
+        const pos = eventXY(ev, boxes, w);
+        if (!pos) continue;
+        const track = ev.data?.track as string;
+        const innerVoice = ev.voice.slice(ev.voice.indexOf(':') + 1);
+        const color =
+          track === 'drone'
+            ? pal.accent
+            : track === 'sparks'
+              ? pal.accent2
+              : pal[STAR_COLORS[innerVoice] ?? 'accent2'];
+        const cents = (ev.data?.cents as number) ?? 0;
+        if (amount > 0 && Math.abs(cents) >= 1) {
+          const semisOff = (cents * amount) / 100;
+          const pxPerSemi = (pos.box.h - 8) / (pos.box.hi - pos.box.lo);
+          og.strokeStyle = pal.inkDim;
+          og.beginPath();
+          og.moveTo(pos.x, pos.y + semisOff * pxPerSemi);
+          og.lineTo(pos.x, pos.y);
+          og.stroke();
+        }
+        og.globalAlpha = 0.4 + ev.gain * 0.6;
+        og.fillStyle = color;
+        if (track === 'drone') {
+          const wDur = (ev.dur / TOTAL_BEATS) * plotW;
+          og.fillRect(pos.x, pos.y - 1, Math.max(2, wDur - 1), 3);
+        } else {
+          og.fillRect(pos.x - 1, pos.y - 1, 3, 3);
+        }
+        og.globalAlpha = 1;
+      }
+    });
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(stat, 0, 0);
+    g.restore();
+
+    /* Header (carries the live loop pass). */
     g.font = '11px monospace';
     g.fillStyle = pal.ink;
     g.fillText('DRONELAB No. 1 — the §III plateau, on the bench', 8, 15);
@@ -625,72 +770,6 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
       8,
       30,
     );
-
-    /* Lanes, with the flat plateau level along each floor. */
-    for (const box of boxes) {
-      g.strokeStyle = pal.edgeDark;
-      g.lineWidth = 1;
-      g.beginPath();
-      g.moveTo(PLOT.left, Math.round(box.y) + 0.5);
-      g.lineTo(w - PLOT.right, Math.round(box.y) + 0.5);
-      g.stroke();
-      g.fillStyle = pal.inkDim;
-      g.fillText(box.label, PLOT.left + 2, box.y + 11);
-      const track = TRACKS.find((t) => t.id === box.track);
-      if (track) {
-        const y = box.y + box.h - 2 - track.level * (box.h * 0.25);
-        g.strokeStyle = pal.edgeLight;
-        g.beginPath();
-        g.moveTo(PLOT.left, y);
-        g.lineTo(w - PLOT.right, y);
-        g.stroke();
-      }
-    }
-
-    /* Minute marks (at the authored 120 BPM). */
-    g.fillStyle = pal.inkDim;
-    for (let b = 0; b <= TOTAL_BEATS; b += 120) {
-      const x = xAt(b);
-      g.fillText(`${Math.floor(b / 120)}:00`, Math.min(x, w - PLOT.right - 24), PLOT.top - 4);
-    }
-    g.fillText(
-      looping ? '↻ WRAPS TO 0:00' : 'ENDS — LOOP IS OFF',
-      w - PLOT.right - 110,
-      h - PLOT.bottom + 12,
-    );
-
-    /* Events: one full pass, with the harmonizer's pull drawn as a tick. */
-    for (const ev of score) {
-      const pos = eventXY(ev, boxes, w);
-      if (!pos) continue;
-      const track = ev.data?.track as string;
-      const innerVoice = ev.voice.slice(ev.voice.indexOf(':') + 1);
-      const color =
-        track === 'drone'
-          ? pal.accent
-          : track === 'sparks'
-            ? pal.accent2
-            : pal[STAR_COLORS[innerVoice] ?? 'accent2'];
-      const cents = (ev.data?.cents as number) ?? 0;
-      if (amount > 0 && Math.abs(cents) >= 1) {
-        const semisOff = (cents * amount) / 100;
-        const pxPerSemi = (pos.box.h - 8) / (pos.box.hi - pos.box.lo);
-        g.strokeStyle = pal.inkDim;
-        g.beginPath();
-        g.moveTo(pos.x, pos.y + semisOff * pxPerSemi);
-        g.lineTo(pos.x, pos.y);
-        g.stroke();
-      }
-      g.globalAlpha = 0.4 + ev.gain * 0.6;
-      g.fillStyle = color;
-      if (track === 'drone') {
-        const wDur = (ev.dur / TOTAL_BEATS) * plotW;
-        g.fillRect(pos.x, pos.y - 1, Math.max(2, wDur - 1), 3);
-      } else {
-        g.fillRect(pos.x - 1, pos.y - 1, 3, 3);
-      }
-      g.globalAlpha = 1;
-    }
 
     /* Flashes on recently performed events (wrapped onto the loop). */
     for (const { event, at } of recent) {
@@ -709,8 +788,8 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
 
     /* Playhead, wrapped onto the single visible pass. */
     const local = looping
-      ? ((beat % TOTAL_BEATS) + TOTAL_BEATS) % TOTAL_BEATS
-      : Math.min(TOTAL_BEATS, Math.max(0, beat));
+      ? ((liveBeat % TOTAL_BEATS) + TOTAL_BEATS) % TOTAL_BEATS
+      : Math.min(TOTAL_BEATS, Math.max(0, liveBeat));
     const x = Math.round(xAt(local)) + 0.5;
     g.strokeStyle = pal.warn;
     g.beginPath();
@@ -728,7 +807,8 @@ function Stage({ params, seed, beat, recent, onInspect, onSeek }: StageProps): J
         const cx = e.clientX - rect.left;
         const cy = e.clientY - rect.top;
         /* Seek within the current pass so the transport never jumps back. */
-        const base = looping ? pass * TOTAL_BEATS : 0;
+        const nowBeat = getBeat?.() ?? beat;
+        const base = looping ? Math.max(0, Math.floor(nowBeat / TOTAL_BEATS)) * TOTAL_BEATS : 0;
         onSeek(base + beatAtX(cx, rect.width));
         const boxes = laneBoxes(rect.height);
         let hit: NoteEvent | null = null;

@@ -170,6 +170,9 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument 
     update(params) {
       if (builtFor !== materialKey(params)) rebuild(params);
     },
+    retune() {
+      /* The seed only reaches the events, never the graph. */
+    },
     dispose() {
       for (const node of bankNodes) node.disconnect();
       mix.disconnect();
@@ -177,12 +180,13 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument 
   };
 }
 
-function Stage({ params, recent, beat, onInspect, events }: StageProps): JSX.Element {
+function Stage({ params, recent, beat, getBeat, onInspect, events }: StageProps): JSX.Element {
   const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
     g.fillStyle = pal.faceSunken;
     g.fillRect(0, 0, w, h);
 
-    const cyclePos = ((beat % CYCLE_BEATS) + CYCLE_BEATS) % CYCLE_BEATS;
+    const liveBeat = getBeat?.() ?? beat;
+    const cyclePos = ((liveBeat % CYCLE_BEATS) + CYCLE_BEATS) % CYCLE_BEATS;
 
     /* Sixteenth ruler along the bottom. */
     const rulerY = h - 26;

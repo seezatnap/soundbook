@@ -11,6 +11,7 @@ import type { NoteEvent } from '@/sdk/events';
 import type { ParamValues } from '@/sdk/params';
 import { rngFor } from '@/sdk/prng';
 import { SCALES, lcmAll, scaleNote } from '@/labs/shared/music';
+import { makeSmoothConvolver } from '@/labs/shared/smooth-convolver';
 import { useStageCanvas } from '@/labs/shared/stage';
 import { buildIr } from '@/labs/room-that-does-not-exist';
 
@@ -97,17 +98,23 @@ function labEvents(params: ParamValues, seed: number, from: number, to: number):
  */
 const LOOM_ROOM: ParamValues = { size: 7, decay: 2.2, damping: 0.5, impossibility: 0 };
 
-function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number): Instrument {
+function makeInstrument(engine: EngineFacade, initial: ParamValues, initialSeed: number): Instrument {
   const ctx = engine.ctx;
+  let seed = initialSeed;
   const input = ctx.createGain();
   const dry = ctx.createGain();
   const wet = ctx.createGain();
-  const room = ctx.createConvolver();
-  room.buffer = buildIr(ctx, LOOM_ROOM, seed);
+  /* A smooth convolver so reseeds crossfade the chamber in place, and so
+     it stays unplugged and dormant at wet 0 (the default, and always
+     inside DroneLab) instead of convolving inaudible output forever. */
+  const room = makeSmoothConvolver(ctx);
+  const applyChamber = (): void =>
+    room.set(`chamber|${seed}|${ctx.sampleRate}`, () => buildIr(ctx, LOOM_ROOM, seed), 0.26);
+  applyChamber();
   input.connect(dry);
   dry.connect(engine.out);
-  input.connect(room);
-  room.connect(wet);
+  input.connect(room.input);
+  room.output.connect(wet);
   wet.connect(engine.out);
 
   const applyWet = (params: ParamValues, smooth: boolean): void => {
@@ -115,6 +122,7 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
        passthrough — the pre-room documents must not change. Live changes
        glide; the initial application is exact for offline renders. */
     const amt = params.wet as number;
+    room.bypass(amt <= 0);
     const dryAmt = Math.cos((amt * Math.PI) / 2);
     const wetAmt = Math.sin((amt * Math.PI) / 2) * 1.1;
     if (smooth) {
@@ -158,22 +166,27 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, seed: number
     update(params) {
       applyWet(params, true);
     },
+    retune(next) {
+      seed = next;
+      applyChamber();
+    },
     dispose() {
       input.disconnect();
       dry.disconnect();
       wet.disconnect();
-      room.disconnect();
+      room.dispose();
     },
   };
 }
 
-function Stage({ params, seed, beat, recent, onInspect, events }: StageProps): JSX.Element {
+function Stage({ params, seed, beat, getBeat, recent, onInspect, events }: StageProps): JSX.Element {
   const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
     g.fillStyle = pal.faceSunken;
     g.fillRect(0, 0, w, h);
+    const liveBeat = getBeat?.() ?? beat;
     const lens = threadLengths(params);
     const superSteps = lcmAll(lens);
-    const globalStep = Math.floor(beat / STEP_BEATS);
+    const globalStep = Math.floor(liveBeat / STEP_BEATS);
     const density = params.density as number;
     const threadColors = [pal.accent, pal.ok, pal.accent2, pal.warn];
 
@@ -214,7 +227,7 @@ function Stage({ params, seed, beat, recent, onInspect, events }: StageProps): J
 
       /* Per-thread playhead, wrapping at the thread's own length. */
       const pos = ((globalStep % len) + len) % len;
-      const frac = (beat / STEP_BEATS) % 1;
+      const frac = (liveBeat / STEP_BEATS) % 1;
       const px = x0 + cellW * (pos + frac + 0.5);
       if (px <= x0 + cellW * len) {
         g.fillStyle = pal.ink;
@@ -246,7 +259,7 @@ function Stage({ params, seed, beat, recent, onInspect, events }: StageProps): J
     g.strokeStyle = pal.edgeLight;
     g.strokeRect(70.5, barY + 0.5, w - 90, 8);
     g.fillStyle = pal.accent2;
-    g.fillRect(71, barY + 1, (w - 92) * ((superPos + ((beat / STEP_BEATS) % 1)) / superSteps), 7);
+    g.fillRect(71, barY + 1, (w - 92) * ((superPos + ((liveBeat / STEP_BEATS) % 1)) / superSteps), 7);
     g.fillStyle = pal.inkDim;
     g.font = '10px monospace';
     g.fillText(`LCM ${superSteps}`, 8, barY + 8);
