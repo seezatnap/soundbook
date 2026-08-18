@@ -254,6 +254,23 @@ body {
 }
 
 @media (max-width: 900px) {
+  /* Installed as a home-screen app, the phone's rounded corners and home
+     indicator clip the bottom edge. Hold the last 50px empty below the
+     status bar, dressed in the system's light 2px dither. */
+  .sb-shell::after {
+    content: '';
+    flex: none;
+    height: 50px;
+    border-top: 2px solid var(--edge-dark);
+    /* The plain 2px dither, its light squares nudged a step brighter. */
+    background:
+      repeating-conic-gradient(
+          color-mix(in srgb, var(--face-raised) 80%, var(--edge-light)) 0% 25%,
+          var(--face) 0% 50%
+        )
+        0 0 / 4px 4px;
+  }
+
   .sb-header__question {
     display: none;
   }
