@@ -8,6 +8,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Engine, getEngine, MAX_VOICES } from '@/engine/engine';
+import {
+  mediaSessionHandlers,
+  mediaSessionMetadata,
+  mediaSessionPlaybackState,
+  mediaSessionPosition,
+} from '@/engine/media-session';
 import { unlockAudio } from '@/engine/unlock';
 import { Transport } from '@/engine/transport';
 import { Scheduler } from '@/engine/scheduler';
@@ -77,6 +83,20 @@ export function useAudio(
   paramsRef.current = params;
   seedRef.current = seed;
   tempoRef.current = tempo;
+
+  /* Lock-screen buttons call through refs so the handlers register once. */
+  const playRef = useRef<() => void>(() => {});
+  const stopRef = useRef<() => void>(() => {});
+  const rewindRef = useRef<() => void>(() => {});
+
+  const syncMediaPosition = useCallback((): void => {
+    const transport = transportRef.current;
+    const piece = labRef.current.pieceBeats;
+    if (!transport || !piece) return;
+    const bps = transport.tempo / 60;
+    const position = (((transport.beat() % piece) + piece) % piece) / bps;
+    mediaSessionPosition(piece / bps, position);
+  }, []);
 
   const rebuildInstrument = useCallback((): void => {
     const engine = engineRef.current;
@@ -200,6 +220,11 @@ export function useAudio(
       scheduler.start();
       schedulerRef.current = scheduler;
       setAnalyser(engine.analyser);
+      mediaSessionHandlers({
+        play: () => playRef.current(),
+        pause: () => stopRef.current(),
+        rewind: () => rewindRef.current(),
+      });
     }
     rebuildInstrument();
   }, [rebuildInstrument]);
@@ -221,13 +246,15 @@ export function useAudio(
     if (!transport) return;
     transport.setTempo(tempo);
     schedulerRef.current?.resync();
-  }, [tempo]);
+    syncMediaPosition();
+  }, [tempo, syncMediaPosition]);
 
   /* When the lab changes, rewind so cycles start clean. */
   useEffect(() => {
     transportRef.current?.seek(0);
     schedulerRef.current?.resync();
     recentRef.current.length = 0;
+    mediaSessionMetadata(lab.title);
   }, [lab]);
 
   useEffect(
@@ -252,12 +279,17 @@ export function useAudio(
     transportRef.current?.play();
     schedulerRef.current?.resync();
     setPlaying(true);
-  }, [ensureAudio]);
+    mediaSessionMetadata(labRef.current.title);
+    mediaSessionPlaybackState(true);
+    syncMediaPosition();
+  }, [ensureAudio, syncMediaPosition]);
 
   const stop = useCallback((): void => {
     transportRef.current?.stop();
     setPlaying(false);
-  }, []);
+    mediaSessionPlaybackState(false);
+    syncMediaPosition();
+  }, [syncMediaPosition]);
 
   const step = useCallback((): void => {
     ensureAudio();
@@ -273,8 +305,9 @@ export function useAudio(
       ensureAudio();
       transportRef.current?.seek(beat);
       schedulerRef.current?.resync();
+      syncMediaPosition();
     },
-    [ensureAudio],
+    [ensureAudio, syncMediaPosition],
   );
 
   const rewind = useCallback((): void => {
@@ -283,6 +316,10 @@ export function useAudio(
   }, [seek]);
 
   const getBeat = useCallback((): number => transportRef.current?.beat() ?? 0, []);
+
+  playRef.current = play;
+  stopRef.current = stop;
+  rewindRef.current = rewind;
 
   const diagnostics = useCallback((): Record<string, string | number> => {
     const engine = engineRef.current;
