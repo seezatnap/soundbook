@@ -262,11 +262,12 @@ body {
     flex: none;
     height: 50px;
     border-top: 2px solid var(--edge-dark);
-    /* The plain 2px dither, its light squares nudged a step brighter. */
+    /* A 2px dither pitched at the stage's sunken tone: face-sunken squares
+       with a faint lift toward face for the grain. */
     background:
       repeating-conic-gradient(
-          color-mix(in srgb, var(--face-raised) 80%, var(--edge-light)) 0% 25%,
-          var(--face) 0% 50%
+          color-mix(in srgb, var(--face-sunken) 80%, var(--face)) 0% 25%,
+          var(--face-sunken) 0% 50%
         )
         0 0 / 4px 4px;
   }
