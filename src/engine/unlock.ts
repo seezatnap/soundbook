@@ -45,6 +45,10 @@ function claimMediaChannel(): void {
       mediaKeepAlive.preload = 'auto';
       mediaKeepAlive.setAttribute('playsinline', '');
       (mediaKeepAlive as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+      /* In the DOM, not detached: WebKit's Now Playing card needs a real
+         activation target for its tap-through to focus the app. */
+      mediaKeepAlive.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(mediaKeepAlive);
     }
     void mediaKeepAlive.play().catch(() => {
       /* Autoplay refused outside a gesture; the next unlock retries. */
