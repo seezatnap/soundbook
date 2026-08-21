@@ -5,16 +5,14 @@
  * are just noise bursts fed through them.
  */
 
-import type { JSX } from 'react';
-import { defineLab, type EngineFacade, type Instrument, type StageProps } from '@/sdk/lab';
+import { defineLab, type EngineFacade, type Instrument } from '@/sdk/lab';
 import type { NoteEvent } from '@/sdk/events';
 import type { ParamValues } from '@/sdk/params';
 import { makeRng, rngFor } from '@/sdk/prng';
-import { useStageCanvas } from '@/labs/shared/stage';
 
-const CYCLE_BEATS = 4;
-const SLOTS = 16; // sixteenth grid
-const RESONATORS = [1, 1.5, 2, 3]; // frequency multipliers, large → small
+export const CYCLE_BEATS = 4;
+export const SLOTS = 16; // sixteenth grid
+export const RESONATORS = [1, 1.5, 2, 3]; // frequency multipliers, large → small
 
 interface Material {
   ratios: number[];
@@ -180,99 +178,6 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues): Instrument 
   };
 }
 
-function Stage({ params, recent, beat, getBeat, onInspect, events }: StageProps): JSX.Element {
-  const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
-    g.fillStyle = pal.faceSunken;
-    g.fillRect(0, 0, w, h);
-
-    const liveBeat = getBeat?.() ?? beat;
-    const cyclePos = ((liveBeat % CYCLE_BEATS) + CYCLE_BEATS) % CYCLE_BEATS;
-
-    /* Sixteenth ruler along the bottom. */
-    const rulerY = h - 26;
-    for (let s = 0; s < SLOTS; s++) {
-      const x = (w * (s + 0.5)) / SLOTS;
-      g.fillStyle = s % 4 === 0 ? pal.inkDim : pal.edgeDark;
-      g.fillRect(Math.round(x) - 1, rulerY, 2, s % 4 === 0 ? 10 : 6);
-    }
-    const px = (w * cyclePos) / CYCLE_BEATS;
-    g.fillStyle = pal.accent;
-    g.fillRect(Math.round(px) - 1, rulerY - 4, 2, 18);
-
-    /* Four resonators: discs sized by pitch (big = low). */
-    const positions = RESONATORS.map((_, i) => ({
-      x: (w * (i + 0.5)) / RESONATORS.length,
-      y: h * 0.42,
-      r: Math.min(w / 10, h / 5) / Math.sqrt(RESONATORS[i]),
-    }));
-
-    positions.forEach((pos, i) => {
-      g.strokeStyle = pal.edgeLight;
-      g.lineWidth = 2;
-      g.beginPath();
-      g.arc(pos.x, pos.y, pos.r, 0, Math.PI * 2);
-      g.stroke();
-      g.fillStyle = pal.face;
-      g.beginPath();
-      g.arc(pos.x, pos.y, pos.r - 2, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = pal.inkDim;
-      g.font = '10px monospace';
-      g.textAlign = 'center';
-      g.fillText(`×${RESONATORS[i]}`, pos.x, pos.y + pos.r + 14);
-      g.textAlign = 'left';
-    });
-
-    /* Strike flashes: expanding rings that die with the decay param. */
-    const ringLife = Math.min(2.5, (params.decay as number)) * 1000;
-    for (const { event, at } of recent) {
-      const age = nowMs - at;
-      if (age < 0 || age > ringLife) continue;
-      const resonator = (event.data?.resonator as number) ?? 0;
-      const pos = positions[resonator];
-      const t = age / ringLife;
-      g.globalAlpha = 1 - t;
-      g.strokeStyle = pal.accent;
-      g.lineWidth = 2;
-      g.beginPath();
-      g.arc(pos.x, pos.y, pos.r * (1 + t * 0.9), 0, Math.PI * 2);
-      g.stroke();
-      g.globalAlpha = 1;
-    }
-
-    /* Upcoming strikes in this cycle, as dots on the ruler. */
-    for (const ev of events) {
-      const slot = (ev.data?.slot as number) ?? 0;
-      const x = (w * (slot + 0.5)) / SLOTS;
-      g.fillStyle = pal.accent2;
-      g.fillRect(Math.round(x) - 2, rulerY - 10, 4, 4);
-    }
-
-    g.fillStyle = pal.ink;
-    g.font = '11px monospace';
-    g.fillText(
-      `${String(params.material).toUpperCase()}  ·  ${(params.fundamental as number).toFixed(0)} Hz  ·  ring ${(params.decay as number).toFixed(1)}s`,
-      8,
-      16,
-    );
-  });
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '100%', height: '100%', display: 'block', cursor: 'pointer' }}
-      onClick={(e) => {
-        /* Map a click on the ruler to the nearest strike in this cycle. */
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const slot = Math.floor((x / rect.width) * SLOTS);
-        const hit = events.find((ev) => Math.abs(((ev.data?.slot as number) ?? -99) - slot) <= 1);
-        if (hit) onInspect(hit);
-      }}
-    />
-  );
-}
-
 export const resonantMaterials = defineLab({
   id: 'resonant-materials',
   version: 1,
@@ -338,7 +243,6 @@ export const resonantMaterials = defineLab({
   cycleBeats: () => CYCLE_BEATS,
   events: ({ params, seed, range }) => labEvents(params, seed, range.from, range.to),
   makeInstrument,
-  Stage,
   stories: [
     {
       name: 'Wine glasses',

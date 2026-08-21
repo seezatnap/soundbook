@@ -1,19 +1,20 @@
 /*
- * Hosts the lab's Stage and owns the animation-rate state: the transport
- * beat ticks here at rAF rate so only the stage subtree re-renders per
- * frame, never the whole shell. The visible cycle's events are recomputed
- * only when the cycle index (or the document) changes.
+ * Hosts the lab's stage renderer and owns the animation-rate state: the
+ * transport beat ticks here at rAF rate so only this subtree re-renders
+ * per frame, never the whole shell. The visible cycle's events are
+ * recomputed only when the cycle index (or the document) changes. The
+ * renderer itself is pure (see StageRenderer) — this is the only place in
+ * the workshop that turns React props into a StageFrame.
  */
 
-import { useEffect, useRef, useState, type JSX } from 'react';
-import type { LabDefinition } from '@/sdk/lab';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import type { RecentEvent, StagedLab, StageFrame } from '@/sdk/lab';
 import type { NoteEvent } from '@/sdk/events';
 import type { ParamValues } from '@/sdk/params';
-import { useThrottledMemo } from '@/labs/shared/stage';
-import type { RecentEvent } from '@/shell/useAudio';
+import { useStageCanvas, useThrottledMemo } from '@/shell/stage-hooks';
 
 interface StageHostProps {
-  lab: LabDefinition;
+  lab: StagedLab;
   params: ParamValues;
   seed: number;
   playing: boolean;
@@ -36,15 +37,13 @@ export function StageHost({
   onSeek,
 }: StageHostProps): JSX.Element {
   const [beat, setBeat] = useState(0);
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ width: 640, height: 360 });
 
   useEffect(() => {
     let frame = 0;
     const loop = (): void => {
       /* Quarter-beat granularity: the React-visible beat only needs to
          drive the cycle window, so re-render ~8×/s at 120 BPM instead of
-         every frame. Stages draw their playheads from getBeat() live. */
+         every frame. Renderers draw their playheads from the live beat. */
       const quantized = Math.floor(getBeat() * 4) / 4;
       setBeat((prev) => (prev === quantized ? prev : quantized));
       frame = requestAnimationFrame(loop);
@@ -52,16 +51,6 @@ export function StageHost({
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
   }, [getBeat]);
-
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-    const observer = new ResizeObserver(() => {
-      setSize({ width: host.clientWidth, height: host.clientHeight });
-    });
-    observer.observe(host);
-    return () => observer.disconnect();
-  }, []);
 
   const cycleBeats = lab.cycleBeats(params);
   const cycleIndex = Math.max(0, Math.floor(beat / cycleBeats));
@@ -78,22 +67,50 @@ export function StageHost({
     150,
   );
 
-  const Stage = lab.Stage;
+  /* One renderer per lab mount; its closure holds the per-canvas caches. */
+  const renderer = useMemo(() => lab.makeStage(), [lab]);
+
+  const docRef = useRef({ params, seed, playing, events, analyser });
+  docRef.current = { params, seed, playing, events, analyser };
+
+  const frameAt = useCallback(
+    (width: number, height: number, nowMs: number): StageFrame => ({
+      ...docRef.current,
+      beat: getBeat(),
+      recent: recentRef.current ?? [],
+      width,
+      height,
+      nowMs,
+    }),
+    [getBeat, recentRef],
+  );
+
+  const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
+    renderer.draw(g, frameAt(w, h, nowMs), pal);
+  });
+
   return (
-    <div ref={hostRef} className="sb-stage">
-      <Stage
-        params={params}
-        seed={seed}
-        beat={beat}
-        getBeat={getBeat}
-        playing={playing}
-        events={events}
-        recent={recentRef.current ?? []}
-        analyser={analyser}
-        onInspect={onInspect}
-        onSeek={onSeek}
-        width={size.width}
-        height={size.height}
+    <div className="sb-stage">
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          cursor: renderer.click ? 'pointer' : 'default',
+        }}
+        onClick={(e) => {
+          if (!renderer.click) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const hit = renderer.click(
+            e.clientX - rect.left,
+            e.clientY - rect.top,
+            frameAt(rect.width, rect.height, performance.now()),
+          );
+          if (!hit) return;
+          if (hit.seek !== undefined) onSeek(hit.seek);
+          if (hit.inspect) onInspect(hit.inspect);
+        }}
       />
     </div>
   );

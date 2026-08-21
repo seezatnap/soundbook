@@ -1,11 +1,16 @@
 /*
  * The lab contract. A lab is one musical question, explored through a
  * declarative schema: params, a pure pattern function, an instrument
- * factory, a stage view, and authored stories. The shell owns everything
+ * factory, a stage renderer, and authored stories. The shell owns everything
  * else — controls, URL, transport, inspectors — generated from this shape.
+ *
+ * Everything declared here is React-free and DOM-free by design: the Code
+ * export bundles a lab's `index.ts` together with `src/export/runtime.ts`
+ * into one standalone, audio-only script, so a lab definition may depend on
+ * the SDK, the engine facade, the shared lab utilities and the Web Audio API
+ * — nothing else. Stages are separate (`stage.ts`, see StagedLab).
  */
 
-import type { ComponentType } from 'react';
 import type { BeatRange, NoteEvent } from '@/sdk/events';
 import type { ParamSpec, ParamValues } from '@/sdk/params';
 
@@ -62,30 +67,65 @@ export interface Story {
   params: Partial<ParamValues>;
 }
 
-export interface StageProps {
+/** The chrome's drawing tokens, read from CSS custom properties at mount. */
+export interface StagePalette {
+  ink: string;
+  inkDim: string;
+  face: string;
+  faceSunken: string;
+  accent: string;
+  accent2: string;
+  ok: string;
+  warn: string;
+  danger: string;
+  edgeLight: string;
+  edgeDark: string;
+}
+
+export interface RecentEvent {
+  event: NoteEvent;
+  /** performance.now()-comparable ms timestamp of the event's onset. */
+  at: number;
+}
+
+/** One animation frame's view of the session, handed to the stage renderer. */
+export interface StageFrame {
   params: ParamValues;
   seed: number;
-  /**
-   * Current transport position in beats. Quantized to quarter-beats so
-   * React renders stay coarse; draw loops needing a smooth playhead read
-   * `getBeat()` instead.
-   */
+  /** Live transport position in beats — smooth, read fresh every frame. */
   beat: number;
-  /** Live transport position, for reading inside rAF draw callbacks. */
-  getBeat?(): number;
   playing: boolean;
-  /** Events for the currently visible cycle, for drawing. */
+  /** Events of the cycle containing `beat`, for drawing. */
   events: NoteEvent[];
   /** Beats recently performed, newest last, for flash/decay effects. */
-  recent: Array<{ event: NoteEvent; at: number }>;
+  recent: RecentEvent[];
   /** Live analyser (time-domain waveform), or null before audio starts. */
   analyser: AnalyserNode | null;
-  /** Select an event to inspect its provenance in the drawer. */
-  onInspect(event: NoteEvent): void;
-  /** Move the transport playhead to a beat (stage-driven seeking). */
-  onSeek(beat: number): void;
+  /** Canvas box in CSS pixels; the 2D context is already DPR-scaled. */
   width: number;
   height: number;
+  /** performance.now() at the frame, comparable to `recent[i].at`. */
+  nowMs: number;
+}
+
+/** What a click on the stage asks the host to do. */
+export interface StageHit {
+  /** Select this event for the provenance inspector. */
+  inspect?: NoteEvent;
+  /** Move the transport playhead here (timeline stages). */
+  seek?: number;
+}
+
+/**
+ * A stage is a pure canvas renderer. `draw` paints one frame from a
+ * StageFrame and a palette; `click` maps a pointer position (CSS px, canvas
+ * relative) to what the stage wants done. No React, no DOM beyond the 2D
+ * context — the shell's StageHost is the only thing that turns props into
+ * frames, and labs never depend on the shell.
+ */
+export interface StageRenderer {
+  draw(g: CanvasRenderingContext2D, frame: StageFrame, palette: StagePalette): void;
+  click?(x: number, y: number, frame: StageFrame): StageHit | null;
 }
 
 export type LabFamily =
@@ -153,7 +193,6 @@ export interface LabDefinition {
    */
   morph?(a: ParamValues, b: ParamValues, t: number): MorphResult;
   makeInstrument(engine: EngineFacade, params: ParamValues, seed: number): Instrument;
-  Stage: ComponentType<StageProps>;
   stories: Story[];
   /** Longer-form notes rendered in the Docs drawer tab (plain text/markdown-lite). */
   docs: string;
@@ -162,4 +201,23 @@ export interface LabDefinition {
 /** Identity helper — gives labs full type checking at the definition site. */
 export function defineLab(lab: LabDefinition): LabDefinition {
   return lab;
+}
+
+/**
+ * A lab with its workshop stage attached — what the registry hands the
+ * shell. The stage lives in `src/labs/<id>/stage.ts`, outside the
+ * definition, so a code export (which bundles `index.ts` only) carries
+ * the music and not a line of drawing code.
+ */
+export interface StagedLab extends LabDefinition {
+  /**
+   * A fresh stage renderer per mounted canvas. Per-canvas caches (layer
+   * bitmaps, throttled scores) live in the returned closure, so the factory
+   * is called once per mount, never per frame.
+   */
+  makeStage(): StageRenderer;
+}
+
+export function withStage(lab: LabDefinition, makeStage: () => StageRenderer): StagedLab {
+  return { ...lab, makeStage };
 }

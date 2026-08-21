@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { encodeState, decodeState, type SessionState } from '@/sdk/codec';
 import { defaultsOf, randomizeParams, sanitizeAll, type ParamValues } from '@/sdk/params';
-import type { LabDefinition, Story } from '@/sdk/lab';
+import type { StagedLab, Story } from '@/sdk/lab';
 import { freshSeed, makeRng } from '@/sdk/prng';
 import { LABS, findLab } from '@/labs/registry';
 
@@ -23,7 +23,7 @@ export interface Session {
   locked: ReadonlySet<string>;
 }
 
-function freshSession(lab: LabDefinition): Session {
+function freshSession(lab: StagedLab): Session {
   return {
     labId: lab.id,
     seed: 1,
@@ -39,7 +39,7 @@ const COALESCE_MS = 400;
 
 export interface SessionApi {
   session: Session;
-  lab: LabDefinition;
+  lab: StagedLab;
   /** Payload currently in the address bar (diagnostics). */
   urlPayload: string;
   setParam(key: string, value: ParamValues[string]): void;

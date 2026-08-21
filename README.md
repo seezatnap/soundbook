@@ -61,11 +61,39 @@ outliers — timing, rhythm and instruments stay exactly as published. A
 composition sets `pieceBeats` so WAV export renders the whole piece.
 
 Each lab declares a schema (`defineLab`): metadata, 5–8 params, a pure event
-function, an instrument factory, a canvas stage, authored **stories**
-(presets), and docs. The shell generates everything else — controls with
-exact entry / lock / reset, randomize, A/B morph, undo/redo, URL codec,
-inspectors, WAV export (offline render through the same instrument factory),
-and a local publish shelf of immutable snapshot URLs.
+function, an instrument factory, a pure canvas stage renderer, authored
+**stories** (presets), and docs. The shell generates everything else —
+controls with exact entry / lock / reset, randomize, A/B morph, undo/redo,
+URL codec, inspectors, WAV export (offline render through the same
+instrument factory), code export, and a local publish shelf of immutable
+snapshot URLs.
+
+## Code export
+
+**CODE** (next to EXPORT) downloads `<lab>-seed<N>.zip`: an `index.html`
+that summarizes the settings — seed, tempo, every param, locks — in a table
+and carries a PLAY / PAUSE / STOP transport, plus `<lab>.js`, the lab's
+definition and a minimal player linked into one classic script written to
+be read — by a person or by an agent downstream: one labelled section per
+source file, types stripped, every comment kept verbatim, interfaces and
+type aliases kept as `//` comments, a banner explaining the layout and the
+API. Audio only: no React, no design system, no stage, no network, no
+minification (50–115 KB).
+Open the HTML from disk, press PLAY, and it performs exactly the events the
+workshop would, through the same engine, transport, scheduler and
+instrument factory. Edit a value in the HTML, reload, and the music
+follows. `Soundbook.lab` is the lab definition, so
+`Soundbook.lab.events({params, seed, range})` lists the notes — with
+provenance — from the console.
+
+This is a contract, not a feature of some labs: a lab's definition
+(`src/labs/<id>/index.ts`) is React-free and stage-free, its canvas lives
+apart in `stage.ts`, and `src/export/__tests__/export.test.ts` bundles
+every registered lab with rolldown, runs it in a bare VM, and asserts its
+events match the workshop's for every story. `npm run export:lab -- <id>
+[--story "Name"]` writes the same pair to `dist-export/<id>/` without a
+browser. See `.claude/skills/code-export/SKILL.md` for the rules that keep
+it true.
 
 ## Layout
 
@@ -73,8 +101,12 @@ and a local publish shelf of immutable snapshot URLs.
 src/
   sdk/        prng, events+provenance, param schemas, defineLab, URL codec
   engine/     shared AudioContext engine, transport, lookahead scheduler, WAV
-  shell/      session/URL state, audio wiring, toolbar, params, drawer, stage
-  labs/       one folder per lab + shared music-theory/canvas utilities
+  shell/      session/URL state, audio wiring, toolbar, params, drawer, stage host
+  labs/       one folder per lab: index.ts (definition) + stage.ts (canvas); shared utilities
+  export/     code export: audio-only player runtime, HTML template, ZIP, CODE button
+tools/
+  export-bundler.mjs        rolldown bundling of one lab + runtime (Vite plugin, tests, CLI)
+  export-lab.mjs            npm run export:lab -- <id>  →  dist-export/<id>/
 vendor/
   sim-city-design-system/   vendored UI library (see CLAUDE.md before editing)
 ```

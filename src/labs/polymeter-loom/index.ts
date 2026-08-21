@@ -5,25 +5,23 @@
  * of all thread lengths.
  */
 
-import type { JSX } from 'react';
-import { defineLab, type EngineFacade, type Instrument, type StageProps } from '@/sdk/lab';
+import { defineLab, type EngineFacade, type Instrument } from '@/sdk/lab';
 import type { NoteEvent } from '@/sdk/events';
 import type { ParamValues } from '@/sdk/params';
 import { rngFor } from '@/sdk/prng';
 import { SCALES, lcmAll, scaleNote } from '@/labs/shared/music';
 import { makeSmoothConvolver } from '@/labs/shared/smooth-convolver';
-import { useStageCanvas } from '@/labs/shared/stage';
 import { buildIr } from '@/labs/room-that-does-not-exist';
 
-const STEP_BEATS = 0.5; // eighth notes
-const THREADS = [
+export const STEP_BEATS = 0.5; // eighth notes
+export const THREADS = [
   { name: 'warp', lenKey: 'lenA', octave: 0, degreeBase: 0 },
   { name: 'weft', lenKey: 'lenB', octave: 1, degreeBase: 2 },
   { name: 'silk', lenKey: 'lenC', octave: 2, degreeBase: 4 },
   { name: 'gold', lenKey: 'lenD', octave: 3, degreeBase: 6 },
 ] as const;
 
-function threadLengths(params: ParamValues): number[] {
+export function threadLengths(params: ParamValues): number[] {
   return THREADS.map((t) => params[t.lenKey] as number);
 }
 
@@ -33,7 +31,7 @@ interface Cell {
 }
 
 /** The fixed seeded figure for one thread: len cells of (gate roll, pitch). */
-function figureFor(seed: number, thread: string, len: number): Cell[] {
+export function figureFor(seed: number, thread: string, len: number): Cell[] {
   return Array.from({ length: len }, (_, i) => {
     const rng = rngFor(seed, 'loom', thread, i);
     return { gateRoll: rng.next(), degree: rng.int(9) };
@@ -179,123 +177,6 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, initialSeed:
   };
 }
 
-function Stage({ params, seed, beat, getBeat, recent, onInspect, events }: StageProps): JSX.Element {
-  const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
-    g.fillStyle = pal.faceSunken;
-    g.fillRect(0, 0, w, h);
-    const liveBeat = getBeat?.() ?? beat;
-    const lens = threadLengths(params);
-    const superSteps = lcmAll(lens);
-    const globalStep = Math.floor(liveBeat / STEP_BEATS);
-    const density = params.density as number;
-    const threadColors = [pal.accent, pal.ok, pal.accent2, pal.warn];
-
-    const rowH = (h - 60) / THREADS.length;
-    THREADS.forEach((thread, ti) => {
-      const len = lens[ti];
-      const figure = figureFor(seed, thread.name, len);
-      const y = 30 + ti * rowH;
-      const cellW = (w - 90) / len;
-      const x0 = 70;
-
-      g.fillStyle = pal.inkDim;
-      g.font = '10px monospace';
-      g.fillText(`${thread.name.toUpperCase()} ${len}`, 8, y + rowH / 2 + 3);
-
-      /* Thread line. */
-      g.strokeStyle = pal.edgeDark;
-      g.lineWidth = 1;
-      g.beginPath();
-      g.moveTo(x0, y + rowH / 2 + 0.5);
-      g.lineTo(x0 + cellW * len, y + rowH / 2 + 0.5);
-      g.stroke();
-
-      for (let c = 0; c < len; c++) {
-        const cx = x0 + cellW * (c + 0.5);
-        const cy = y + rowH / 2;
-        const cell = figure[c];
-        const active = c === 0 || cell.gateRoll < density;
-        const size = c === 0 ? 7 : 5;
-        if (active) {
-          g.fillStyle = threadColors[ti];
-          g.fillRect(cx - size / 2, cy - size / 2, size, size);
-        } else {
-          g.strokeStyle = pal.edgeLight;
-          g.strokeRect(cx - 2.5, cy - 2.5, 5, 5);
-        }
-      }
-
-      /* Per-thread playhead, wrapping at the thread's own length. */
-      const pos = ((globalStep % len) + len) % len;
-      const frac = (liveBeat / STEP_BEATS) % 1;
-      const px = x0 + cellW * (pos + frac + 0.5);
-      if (px <= x0 + cellW * len) {
-        g.fillStyle = pal.ink;
-        g.fillRect(Math.round(px) - 1, y + 4, 2, rowH - 8);
-      }
-    });
-
-    /* Flashes. */
-    for (const { event, at } of recent) {
-      const age = nowMs - at;
-      if (age < 0 || age > 300) continue;
-      const ti = (event.data?.thread as number) ?? 0;
-      const len = lens[ti];
-      const c = (event.data?.cell as number) ?? 0;
-      const y = 30 + ti * rowH + rowH / 2;
-      const cellW = (w - 90) / len;
-      const x = 70 + cellW * (c + 0.5);
-      const t = age / 300;
-      g.globalAlpha = 1 - t;
-      g.strokeStyle = threadColors[ti];
-      g.lineWidth = 2;
-      g.strokeRect(x - 5 - t * 5, y - 5 - t * 5, (5 + t * 5) * 2, (5 + t * 5) * 2);
-      g.globalAlpha = 1;
-    }
-
-    /* Superperiod progress: when do all threads realign? */
-    const superPos = ((globalStep % superSteps) + superSteps) % superSteps;
-    const barY = h - 18;
-    g.strokeStyle = pal.edgeLight;
-    g.strokeRect(70.5, barY + 0.5, w - 90, 8);
-    g.fillStyle = pal.accent2;
-    g.fillRect(71, barY + 1, (w - 92) * ((superPos + ((liveBeat / STEP_BEATS) % 1)) / superSteps), 7);
-    g.fillStyle = pal.inkDim;
-    g.font = '10px monospace';
-    g.fillText(`LCM ${superSteps}`, 8, barY + 8);
-
-    g.fillStyle = pal.ink;
-    g.font = '11px monospace';
-    g.fillText(
-      `threads ${lens.join('·')}  ·  realign every ${superSteps} steps (${(superSteps * STEP_BEATS).toFixed(1)} beats)`,
-      8,
-      16,
-    );
-  });
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '100%', height: '100%', display: 'block', cursor: 'pointer' }}
-      onClick={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        const x = e.clientX - rect.left;
-        const rowH = (rect.height - 60) / THREADS.length;
-        const ti = Math.floor((y - 30) / rowH);
-        if (ti < 0 || ti >= THREADS.length) return;
-        const len = threadLengths(params)[ti];
-        const cellW = (rect.width - 90) / len;
-        const cell = Math.floor((x - 70) / cellW);
-        const hit = events.find(
-          (ev) => (ev.data?.thread as number) === ti && (ev.data?.cell as number) === cell,
-        );
-        if (hit) onInspect(hit);
-      }}
-    />
-  );
-}
-
 export const polymeterLoom = defineLab({
   id: 'polymeter-loom',
   version: 2,
@@ -355,7 +236,6 @@ export const polymeterLoom = defineLab({
   cycleBeats: (params) => Math.min(lcmAll(threadLengths(params)) * STEP_BEATS, 64),
   events: ({ params, seed, range }) => labEvents(params, seed, range.from, range.to),
   makeInstrument,
-  Stage,
   stories: [
     {
       name: 'Classic 3·4·5·7',

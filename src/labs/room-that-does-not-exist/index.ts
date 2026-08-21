@@ -6,17 +6,15 @@
  * pour.
  */
 
-import type { JSX } from 'react';
-import { defineLab, type EngineFacade, type Instrument, type StageProps } from '@/sdk/lab';
+import { defineLab, type EngineFacade, type Instrument } from '@/sdk/lab';
 import type { NoteEvent } from '@/sdk/events';
 import type { ParamValues } from '@/sdk/params';
 import { rngFor } from '@/sdk/prng';
 import { SCALES, scaleNote } from '@/labs/shared/music';
 import { makeSmoothConvolver } from '@/labs/shared/smooth-convolver';
-import { useStageCanvas } from '@/labs/shared/stage';
 
 const CYCLE_BEATS = 8;
-const SLOTS = 16; // half-beat grid
+export const SLOTS = 16; // half-beat grid
 const ROOT = 50;
 
 /*
@@ -270,104 +268,6 @@ function makeInstrument(engine: EngineFacade, initial: ParamValues, initialSeed:
   };
 }
 
-function Stage({ params, recent, onInspect, events }: StageProps): JSX.Element {
-  const canvasRef = useStageCanvas((g, w, h, pal, nowMs) => {
-    g.fillStyle = pal.faceSunken;
-    g.fillRect(0, 0, w, h);
-    const imp = params.impossibility as number;
-    const size = params.size as number;
-
-    /* An axonometric box whose back face refuses to agree with its front. */
-    const cx = w / 2;
-    const cy = h / 2 + 10;
-    const scale = Math.min(w, h) * (0.16 + Math.min(size, 30) * 0.006);
-    const fw = scale * 1.6;
-    const fh = scale * 1.0;
-    const dx = scale * 0.55;
-    const dyBack = -scale * 0.45;
-    /* Impossibility swings the back face the wrong way. */
-    const wrong = imp * scale * 0.9;
-
-    const front = [
-      [cx - fw / 2, cy - fh / 2],
-      [cx + fw / 2, cy - fh / 2],
-      [cx + fw / 2, cy + fh / 2],
-      [cx - fw / 2, cy + fh / 2],
-    ];
-    const back = [
-      [cx - fw / 2 + dx, cy - fh / 2 + dyBack],
-      [cx + fw / 2 + dx - wrong, cy - fh / 2 + dyBack + wrong * 0.6],
-      [cx + fw / 2 + dx - wrong, cy + fh / 2 + dyBack + wrong * 0.2],
-      [cx - fw / 2 + dx, cy + fh / 2 + dyBack],
-    ];
-
-    g.strokeStyle = pal.inkDim;
-    g.lineWidth = 1;
-    const poly = (pts: number[][]): void => {
-      g.beginPath();
-      pts.forEach(([x, y], i) => (i === 0 ? g.moveTo(x, y) : g.lineTo(x, y)));
-      g.closePath();
-      g.stroke();
-    };
-    poly(back);
-    /* Connectors — the impossible ones cross. */
-    front.forEach(([x, y], i) => {
-      const [bx, by] = back[(i + Math.round(imp * 1.99)) % 4];
-      g.beginPath();
-      g.moveTo(x, y);
-      g.lineTo(bx, by);
-      g.stroke();
-    });
-    g.strokeStyle = pal.ink;
-    g.lineWidth = 2;
-    poly(front);
-
-    /* Echo ripples from recent sparks, blooming per the IR envelope. */
-    const decay = params.decay as number;
-    for (const { event, at } of recent) {
-      const age = (nowMs - at) / 1000;
-      if (age < 0 || age > decay) continue;
-      const t = age / decay;
-      const bloomPeak = 0.15 + 0.45 * imp;
-      const possible = Math.exp(-t * 4);
-      const bloom = Math.exp(-((t - bloomPeak) ** 2) / 0.04);
-      const strength = (1 - imp) * possible + imp * bloom;
-      const slotRng = ((event.data?.slot as number) ?? 0) / SLOTS;
-      const ox = cx - fw / 2 + fw * slotRng + dx * 0.3;
-      const oy = cy + fh * 0.1 - t * 20;
-      g.globalAlpha = Math.min(1, strength);
-      g.strokeStyle = pal.accent2;
-      g.lineWidth = 1.5;
-      g.beginPath();
-      g.arc(ox, oy, 6 + t * scale * 1.4, 0, Math.PI * 2);
-      g.stroke();
-      g.globalAlpha = 1;
-    }
-
-    g.fillStyle = pal.ink;
-    g.font = '11px monospace';
-    g.fillText(
-      `${size.toFixed(1)} m mean path · RT ${decay.toFixed(1)}s · impossibility ${(imp * 100).toFixed(0)}%`,
-      8,
-      16,
-    );
-    if (imp > 0.6) {
-      g.fillStyle = pal.warn;
-      g.fillText('SURVEYOR ADVISORY: GEOMETRY NON-EUCLIDEAN', 8, 32);
-    }
-  });
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '100%', height: '100%', display: 'block', cursor: 'pointer' }}
-      onClick={() => {
-        if (events.length > 0) onInspect(events[0]);
-      }}
-    />
-  );
-}
-
 export const roomThatDoesNotExist = defineLab({
   id: 'room-that-does-not-exist',
   version: 2,
@@ -406,7 +306,6 @@ export const roomThatDoesNotExist = defineLab({
   cycleBeats: () => CYCLE_BEATS,
   events: ({ params, seed, range }) => labEvents(params, seed, range.from, range.to),
   makeInstrument,
-  Stage,
   stories: [
     {
       name: 'Plausible chapel',

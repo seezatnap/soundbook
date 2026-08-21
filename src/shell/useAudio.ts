@@ -18,15 +18,10 @@ import { unlockAudio } from '@/engine/unlock';
 import { Transport } from '@/engine/transport';
 import { Scheduler } from '@/engine/scheduler';
 import { renderWav } from '@/engine/wav';
-import type { LabDefinition, Instrument } from '@/sdk/lab';
-import type { NoteEvent } from '@/sdk/events';
+import type { LabDefinition, Instrument, RecentEvent } from '@/sdk/lab';
 import type { ParamValues } from '@/sdk/params';
 
-export interface RecentEvent {
-  event: NoteEvent;
-  /** performance.now()-comparable ms timestamp of the event's onset. */
-  at: number;
-}
+export type { RecentEvent };
 
 export interface AudioApi {
   playing: boolean;

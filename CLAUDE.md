@@ -16,12 +16,23 @@ functions are pure over beat ranges, and one shared AudioContext lives behind
 - Lab event functions must be pure and chunk-independent: the determinism
   suite (`npm test`) asserts events over [0,24) equal the union of 0.5-beat
   windows, and that far seeks match long listens. Keep it green.
-- New labs: `defineLab` in `src/labs/<id>/index.tsx`, register in
+- New labs: `defineLab` in `src/labs/<id>/index.ts`, register in
   `src/labs/registry.ts`, 5–10 params, ≥2 stories, docs, provenance on every
   event. A console lab that embeds other labs (e.g. DroneLab) may carry more
   params by declaring `paramGroups` — tabs of 5–10 params each, every key in
   exactly one group; the determinism suite enforces both shapes. See the
   `new-lab` skill (`.claude/skills/new-lab/SKILL.md`) before adding one.
+- Everything is exportable as standalone audio code. A lab's `index.ts`
+  (the definition) never imports React, `@simcity/*`, `@/shell/*` or any
+  stage; its canvas lives in `src/labs/<id>/stage.ts` as a pure
+  `makeStage(): StageRenderer`, joined in the registry with `withStage` and
+  never bundled. Any shell behavior that changes what is heard must be
+  mirrored in `src/export/runtime.ts`, the player bundled into every
+  export. Exports are linked unminified with every comment kept — write
+  comments for that reader. The export suite (`npm test`) links every lab
+  and asserts it reproduces the workshop's events. See the `code-export` skill
+  (`.claude/skills/code-export/SKILL.md`) before touching a lab, an
+  instrument, transport behavior or `src/export`.
 
 ## Vendored design system
 

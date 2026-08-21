@@ -1,7 +1,8 @@
 /*
  * The command strip: transport, tempo, seed, undo/redo, A/B morph,
- * randomize, copy link, publish, export. One Toolbar, grouped by
- * separators, every control wired to the session or audio APIs.
+ * randomize, copy link, publish, export (WAV), code (standalone HTML+JS).
+ * One Toolbar, grouped by separators, every control wired to the session
+ * or audio APIs.
  */
 
 import { useState, type JSX } from 'react';
@@ -38,6 +39,8 @@ interface TransportBarProps {
   onPublish(): void;
   onExport(): void;
   exporting: boolean;
+  onExportCode(): void;
+  exportingCode: boolean;
   /** Below the mobile breakpoint: transport only, session controls fold
       into an expandable second row behind a show/hide toggle. */
   compact?: boolean;
@@ -144,6 +147,11 @@ export function TransportBar(props: TransportBarProps): JSX.Element {
       <Tooltip content="Render 4 cycles offline to a WAV file">
         <Button icon="download" onClick={props.onExport} disabled={props.exporting}>
           {props.exporting ? 'RENDERING…' : 'EXPORT'}
+        </Button>
+      </Tooltip>
+      <Tooltip content="Download a ZIP of index.html + JS that reproduces exactly this state, standalone">
+        <Button icon="build" onClick={props.onExportCode} disabled={props.exportingCode}>
+          {props.exportingCode ? 'BUNDLING…' : 'CODE'}
         </Button>
       </Tooltip>
     </>

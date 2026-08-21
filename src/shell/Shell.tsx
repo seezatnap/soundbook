@@ -11,7 +11,7 @@ import { LED, Readout, StatusBar } from '@simcity/components/StatusBar';
 import { useToast } from '@simcity/components/Toast';
 import { hash32 } from '@/sdk/prng';
 import { morphParams } from '@/sdk/params';
-import { useThrottledMemo } from '@/labs/shared/stage';
+import { useThrottledMemo } from '@/shell/stage-hooks';
 import type { NoteEvent } from '@/sdk/events';
 import { useSession } from '@/shell/useSession';
 import { useAudio } from '@/shell/useAudio';
@@ -20,6 +20,7 @@ import { TransportBar } from '@/shell/TransportBar';
 import { ParamPanel } from '@/shell/ParamPanel';
 import { StageHost } from '@/shell/StageHost';
 import { Drawer } from '@/shell/Drawer';
+import { buildCodeExport, exportFileName } from '@/export/code-export';
 
 const PUBLISH_KEY = 'soundbook.published.v1';
 
@@ -64,6 +65,14 @@ function useBeatTrigger(
   }, [enabled, beats, playing, getBeat, fire]);
 }
 
+function downloadBlob(blob: Blob, name: string): void {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function loadPublished(): PublishedSnapshot[] {
   try {
     const raw = localStorage.getItem(PUBLISH_KEY);
@@ -87,6 +96,7 @@ export function Shell(): JSX.Element {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [published, setPublished] = useState<PublishedSnapshot[]>(loadPublished);
   const [exporting, setExporting] = useState(false);
+  const [exportingCode, setExportingCode] = useState(false);
   const [chrome, setChrome] = useState<'dark' | 'light'>('dark');
   const [statusTick, setStatusTick] = useState(0);
 
@@ -226,11 +236,7 @@ export function Shell(): JSX.Element {
     void audio
       .exportWav(cycles)
       .then((blob) => {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${s.lab.id}-seed${s.session.seed}.wav`;
-        a.click();
-        URL.revokeObjectURL(a.href);
+        downloadBlob(blob, `${s.lab.id}-seed${s.session.seed}.wav`);
         toast({
           title: 'WAV EXPORTED',
           description: pieceBeats
@@ -243,6 +249,31 @@ export function Shell(): JSX.Element {
       })
       .finally(() => setExporting(false));
   }, [audio, s.lab, s.session.seed, s.session.params, toast]);
+
+  /* Code export freezes what the ear gets right now — the effective params
+     with any morph resolved — into a standalone, audio-only HTML + JS pair. */
+  const onExportCode = useCallback((): void => {
+    setExportingCode(true);
+    void buildCodeExport({
+      lab: s.lab,
+      seed: s.session.seed,
+      tempo: s.session.tempo,
+      params: effectiveParams,
+      locked: [...locked],
+      sourceUrl: `${window.location.origin}${window.location.pathname}#${s.urlPayload}`,
+    })
+      .then(({ blob, files, scriptBytes }) => {
+        downloadBlob(blob, exportFileName(s.lab, s.session.seed));
+        toast({
+          title: 'CODE EXPORTED',
+          description: `${files.join(' + ')} — ${(scriptBytes / 1024).toFixed(0)} KB of standalone audio-only JS, same events as live.`,
+        });
+      })
+      .catch((error: unknown) => {
+        toast({ title: 'CODE EXPORT FAILED', description: String(error), variant: 'danger' });
+      })
+      .finally(() => setExportingCode(false));
+  }, [s.lab, s.session.seed, s.session.tempo, s.urlPayload, effectiveParams, locked, toast]);
 
   const onApplyMorph = useCallback((): void => {
     if (morph > 0 && s.session.b) {
@@ -425,6 +456,8 @@ export function Shell(): JSX.Element {
             onPublish={onPublish}
             onExport={onExport}
             exporting={exporting}
+            onExportCode={onExportCode}
+            exportingCode={exportingCode}
             compact={compact}
           />
         ),
@@ -442,6 +475,8 @@ export function Shell(): JSX.Element {
           onPublish,
           onExport,
           exporting,
+          onExportCode,
+          exportingCode,
           compact,
           toast,
         ],

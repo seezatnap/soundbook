@@ -10,10 +10,18 @@ generates everything else. Work through this checklist in order.
 
 ## 1. Files
 
-- `src/labs/<id>/index.tsx` — the whole lab: params, events, instrument,
-  stage, stories, docs, exported as a named const.
-- Register in `src/labs/registry.ts`. **Append to `LABS`** — `LABS[0]` is the
-  default lab and tests depend on it staying `oscillatorMicroscope`.
+- `src/labs/<id>/index.ts` — the lab definition: params, events,
+  instrument, stories, docs, exported as a named const whose `id` is the
+  folder name. **React-free and stage-free**: never import `react`,
+  `@simcity/*`, `@/shell/*` or `stage.ts` — the Code export bundles this
+  file standalone, audio only (see the `code-export` skill), and the
+  export suite fails a lab that pulls them in.
+- `src/labs/<id>/stage.ts` — `export function makeStage(): StageRenderer`,
+  the workshop's canvas. Imports whatever it needs from `index.ts` (export
+  the constants / pure helpers it draws from).
+- Register in `src/labs/registry.ts` as `withStage(definition, makeStage)`.
+  **Append to `LABS`** — `LABS[0]` is the default lab and tests depend on
+  it staying `oscillatorMicroscope`.
 - New family? Extend `LabFamily` in `src/sdk/lab.ts`, add its label to
   `FAMILY_LABELS` (registry), and slot it into `FAMILY_ORDER` in
   `src/shell/LabBrowser.tsx` (presentation order; compositions stay last).
@@ -109,19 +117,25 @@ generates everything else. Work through this checklist in order.
 
 ## 6. Stage
 
-- Canvas via `useStageCanvas` from `src/labs/shared/stage.ts`; colors only
-  from the passed `StagePalette`. Clicking inspects (`onInspect`) and, for
-  timeline stages, seeks (`onSeek`). Wrap the playhead (`beat % total`) for
-  looping labs and seek within the current pass so the transport never jumps
+- `src/labs/<id>/stage.ts`: `makeStage(): StageRenderer` — a factory
+  returning `{ draw, click? }`, no React, never bundled into exports. `draw(g, frame, pal)` paints one frame from a `StageFrame`
+  (`params, seed, beat, playing, events, recent, analyser, width, height,
+  nowMs`); colors only from the passed `StagePalette`. `click(x, y, frame)`
+  returns `{ inspect?: event, seek?: beat }` or null — the host (workshop
+  or export) performs it. Wrap the playhead (`beat % total`) for looping
+  labs and seek within the current pass so the transport never jumps
   backward.
-- Playheads read `getBeat?.() ?? beat` inside the draw callback — the
-  `beat` prop is quarter-beat quantized so React renders stay coarse.
-- A stage that draws a full piece MUST: render the document's marks through
+- `frame.beat` is the live transport position (smooth); `frame.events` is
+  the current cycle's window, recomputed by the host when the cycle or the
+  document changes.
+- Per-canvas caches live in the factory closure, built once per mount. A
+  stage that draws a full piece MUST: render the document's marks through
   `makeLayerCache` (blit per frame, redraw per document change); compute
-  its score with `useThrottledMemo` keyed on a fingerprint of ONLY the
+  its score with `makeThrottledMemo` keyed on a fingerprint of ONLY the
   params the events read (never the whole params object — a level or
   transport drag must recompute nothing); and let full-window sweeps hit a
-  per-input cache when a consensus/election needs the same events.
+  per-input cache when a consensus/election needs the same events. See
+  Concordance or DroneLab for the pattern.
 
 ## 7. Performance rules (audio memory is special)
 
@@ -139,5 +153,8 @@ generates everything else. Work through this checklist in order.
 ## 8. Checks
 
 `npm test && npm run typecheck && npm run build` — all three, always. The
-determinism suite picks the lab up from the registry with zero test code;
-still write the lab-specific contract test for what makes this lab itself.
+determinism suite picks the lab up from the registry with zero test code,
+and the export suite bundles it standalone and compares events; still
+write the lab-specific contract test for what makes this lab itself. Then
+`npm run export:lab -- <id>` and open `dist-export/<id>/index.html` — the
+lab must play on its own.
